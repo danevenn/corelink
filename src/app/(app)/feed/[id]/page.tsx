@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AuthorFollowCard } from "@/components/feed/author-follow-card";
 import { EmptyState } from "@/components/feed/empty-state";
 import { ReplyIcon } from "@/components/feed/icons";
 import { FadeIn, FeedItem, MotionProvider } from "@/components/feed/motion";
 import { PostCard } from "@/components/feed/post-card";
 import { ReplyForm } from "@/components/feed/reply-form";
-import { getPostById } from "@/server/posts";
+import { getFollowState, getPostById } from "@/server/posts";
 import { getViewer } from "@/server/viewer";
 
 export default async function PostThreadPage({
@@ -22,6 +23,9 @@ export default async function PostThreadPage({
   if (!thread) notFound();
 
   const { post, replies } = thread;
+
+  // Estado de follow del autor del post raíz (para el botón Seguir).
+  const followState = await getFollowState(post.author.id);
 
   return (
     <div className="flex flex-col gap-5">
@@ -44,9 +48,12 @@ export default async function PostThreadPage({
         Volver al feed
       </Link>
 
-      <FadeIn>
-        <PostCard post={post} variant="detail" viewerId={viewer.id} />
-      </FadeIn>
+      <MotionProvider>
+        <FadeIn className="flex flex-col gap-3">
+          <AuthorFollowCard author={post.author} followState={followState} />
+          <PostCard post={post} variant="detail" viewerId={viewer.id} />
+        </FadeIn>
+      </MotionProvider>
 
       <section aria-label="Respuestas" className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">

@@ -5,7 +5,7 @@ import type { PostWithMeta } from "@/server/posts";
 import { Avatar } from "./avatar";
 import { HashIcon, OfficialIcon, ReplyIcon } from "./icons";
 import { PostActionsMenu } from "./post-actions-menu";
-import { ReactionSummary } from "./reactions";
+import { ReactionBar } from "./reaction-bar";
 
 type PostCardProps = {
   post: PostWithMeta;
@@ -109,9 +109,11 @@ export function PostCard({ post, viewerId, variant = "feed" }: PostCardProps) {
       )}
 
       <footer className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <ReactionSummary
+        <ReactionBar
           breakdown={post.reactionsByType}
+          postId={post.id}
           total={post.reactionsTotal}
+          viewerReaction={post.viewerReaction}
         />
 
         <div className="flex items-center gap-3">
