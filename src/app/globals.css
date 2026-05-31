@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* CoreLink — sistema de diseño (Fase 4b).
+   Identidad propia: neutro frío "slate" + acento índigo corporativo.
+   Tailwind v4 CSS-first: tokens en @theme, dark mode por sistema. */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --foreground: #0f172a;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --brand: #4f46e5;
+  --brand-foreground: #ffffff;
+  --brand-soft: #eef2ff;
+  --official: #b45309;
+  --official-soft: #fffbeb;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0e1a;
+    --surface: #0f1629;
+    --surface-muted: #16203a;
+    --foreground: #e8edf7;
+    --muted-foreground: #8a96b0;
+    --border: #1e293b;
+    --brand: #818cf8;
+    --brand-foreground: #0a0e1a;
+    --brand-soft: #1a1f3d;
+    --official: #fbbf24;
+    --official-soft: #1f1a0d;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-official: var(--official);
+  --color-official-soft: var(--official-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Foco visible y consistente para accesibilidad (navegación por teclado). */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeta prefers-reduced-motion a nivel global como red de seguridad. */
+@media (prefers-reduced-motion: reduce) {
+  /* biome-ignore-start lint/complexity/noImportantStyles: red de seguridad
+     global de accesibilidad; debe ganar a cualquier animación de componente. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: fin de la red de seguridad. */
 }

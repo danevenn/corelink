@@ -1,41 +1,74 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { LogoutButton } from "./logout-button";
+import { notFound } from "next/navigation";
+import { EmptyState } from "@/components/feed/empty-state";
+import { HomeIcon } from "@/components/feed/icons";
+import { FeedItem, MotionProvider } from "@/components/feed/motion";
+import { PostCard } from "@/components/feed/post-card";
+import { PostComposer } from "@/components/feed/post-composer";
+import { getChannels, getFeed } from "@/server/posts";
+import { getViewer } from "@/server/viewer";
 
-// Placeholder de Fase 2: el feed real llega en Fase 4.
-// Aquí solo demostramos que la autenticación funciona de extremo a extremo.
-export default async function FeedPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+type SearchParams = Promise<{ channel?: string }>;
 
-  if (!session) {
-    redirect("/login");
-  }
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { channel: channelSlug } = await searchParams;
 
-  const { user } = session;
-  const displayName = user.isAnonymous ? "Invitado" : user.name;
+  const viewer = await getViewer();
+  if (!viewer) notFound();
+
+  const [feed, channels] = await Promise.all([
+    getFeed(channelSlug ? { channelSlug } : undefined),
+    getChannels(),
+  ]);
+
+  const activeChannel = channelSlug
+    ? channels.find((c) => c.slug === channelSlug)
+    : undefined;
 
   return (
-    <section className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <div className="flex w-full max-w-md flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Feed
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-lg font-semibold text-foreground">
+          {activeChannel ? `# ${activeChannel.name}` : "Feed del equipo"}
         </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Sesión iniciada como{" "}
-          <span className="font-medium text-zinc-900 dark:text-zinc-50">
-            {displayName}
-          </span>
-          {user.isAnonymous ? null : <> ({user.email})</>}.
+        <p className="text-sm text-muted-foreground">
+          {activeChannel?.description ??
+            "Lo último de toda la empresa, en un solo lugar."}
         </p>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">
-          El feed real se construye en la Fase 4. Esta página solo confirma que
-          la autenticación funciona.
-        </p>
-        <div className="flex justify-center">
-          <LogoutButton />
-        </div>
-      </div>
-    </section>
+      </header>
+
+      <PostComposer
+        channels={channels}
+        defaultChannelId={activeChannel?.id}
+        viewer={viewer}
+      />
+
+      {feed.posts.length === 0 ? (
+        <EmptyState
+          description={
+            activeChannel
+              ? "Sé la primera persona en publicar en este canal."
+              : "Aún no hay publicaciones. Comparte algo para empezar."
+          }
+          icon={<HomeIcon className="size-5" />}
+          title="Todavía no hay nada por aquí"
+        />
+      ) : (
+        <MotionProvider>
+          <ul className="flex flex-col gap-3">
+            {feed.posts.map((post, index) => (
+              <li key={post.id}>
+                <FeedItem index={index}>
+                  <PostCard post={post} viewerId={viewer.id} />
+                </FeedItem>
+              </li>
+            ))}
+          </ul>
+        </MotionProvider>
+      )}
+    </div>
   );
 }
