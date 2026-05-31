@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: corelink-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: corelink
+      POSTGRES_PASSWORD: corelink
+      POSTGRES_DB: corelink
+    volumes:
+      - corelink_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U corelink -d corelink"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  corelink_pgdata:

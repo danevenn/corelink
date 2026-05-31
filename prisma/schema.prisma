@@ -1,0 +1,15 @@
+// CoreLink — Prisma schema
+// Fase 1: solo fundación (datasource + generator). Sin modelos de dominio.
+// Los modelos (User, Post, etc.) se añaden en Fase 3.
+//
+// Nota Prisma 7: la connection URL ya no vive aquí. Se configura en
+// `prisma.config.ts` (raíz) vía env("DATABASE_URL"). Ver https://pris.ly/prisma7-client-config
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
