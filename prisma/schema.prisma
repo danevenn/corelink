@@ -23,6 +23,12 @@ model User {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   isAnonymous   Boolean?     @default(false)
+  // Plugin admin (Fase 6a): rol de plataforma + estado de baneo.
+  // role: "user" (default) | "moderator" | "admin".
+  role          String?      @default("user")
+  banned        Boolean?     @default(false)
+  banReason     String?
+  banExpires    DateTime?
   sessions      Session[]
   accounts      Account[]
   members       Member[]
@@ -53,6 +59,8 @@ model Session {
   userId               String
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   activeOrganizationId String?
+  // Plugin admin (Fase 6a): id del admin que está impersonando esta sesión.
+  impersonatedBy       String?
 
   @@unique([token])
   @@index([userId])

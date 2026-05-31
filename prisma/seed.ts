@@ -28,6 +28,12 @@ let ReactionType: typeof PrismaClient.ReactionType;
 
 const DEMO_PASSWORD = "corelink-demo-2026";
 
+// Roles de plataforma (Fase 6a). Resto de usuarios demo quedan en `user`
+// (default). Elegimos a la CTO como admin y al Operations Manager como
+// moderator (staff de moderación de procedimientos).
+const ADMIN_USER_KEY = "ana"; // Ana Reyes — CTO
+const MODERATOR_USER_KEY = "marc"; // Marc Soler — Operations Manager
+
 type DemoUserSpec = {
   key: string;
   name: string;
@@ -234,6 +240,23 @@ async function main(): Promise<void> {
     }
     return id;
   };
+
+  // 2b) Roles de plataforma (Fase 6a) ───────────────────────────────────────
+  // El campo `user.role` lo gestiona el plugin admin de Better Auth. Los
+  // usuarios nacen como `user` (defaultRole); aquí promovemos a admin/moderator.
+  // Idempotente: un `update` directo del campo deja el estado final deseado sin
+  // importar cuántas veces se ejecute el seed.
+  await prisma.user.update({
+    where: { id: uid(ADMIN_USER_KEY) },
+    data: { role: "admin" },
+  });
+  await prisma.user.update({
+    where: { id: uid(MODERATOR_USER_KEY) },
+    data: { role: "moderator" },
+  });
+  console.log(
+    `  ✓ roles: ${ADMIN_USER_KEY}=admin, ${MODERATOR_USER_KEY}=moderator`,
+  );
 
   // 3) Posts raíz ───────────────────────────────────────────────────────────
   const welcome = await prisma.post.create({
