@@ -1,3 +1,8 @@
+overrides:
+  # @better-auth/kysely-adapter@1.6.13 importa DEFAULT_MIGRATION_LOCK_TABLE,
+  # que kysely eliminó en 0.29. Pinneamos a 0.28.x (dentro de su rango peer)
+  # para que el bundle del route handler /api/auth compile en Turbopack.
+  kysely: 0.28.17
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
