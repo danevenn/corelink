@@ -28,6 +28,16 @@ model User {
   members       Member[]
   invitations   Invitation[]
 
+  // Relaciones inversas de dominio (Fase 3)
+  profile               Profile?
+  posts                 Post[]
+  reactions             Reaction[]
+  followers             Follow[]       @relation("following")
+  following             Follow[]       @relation("follower")
+  mentions              Mention[]
+  notifications         Notification[] @relation("notificationRecipient")
+  notificationsAsActor  Notification[] @relation("notificationActor")
+
   @@unique([email])
   @@map("user")
 }
@@ -124,4 +134,167 @@ model Invitation {
   @@index([organizationId])
   @@index([email])
   @@map("invitation")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dominio CoreLink (Fase 3)
+// Modelos de la red social interna. Se relacionan con el `User` de Better Auth
+// por su id. onDelete: Cascade aplicado para arrastrar contenido dependiente.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ChannelType {
+  DEPARTMENT
+  TOPIC
+}
+
+enum ReactionType {
+  LIKE
+  CELEBRATE
+  INSIGHTFUL
+  SUPPORT
+}
+
+enum NotificationType {
+  REPLY
+  MENTION
+  REACTION
+  FOLLOW
+  OFFICIAL_POST
+}
+
+// Perfil 1:1 con User. departmentId apunta a un Channel de tipo DEPARTMENT.
+model Profile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName  String
+  bio          String?
+  avatarUrl    String?
+  jobTitle     String?
+  departmentId String?
+  department   Channel? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([departmentId])
+  @@map("profile")
+}
+
+// Canales por departamento o tema.
+model Channel {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  type        ChannelType @default(TOPIC)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  posts       Post[]
+  profiles    Profile[]
+
+  @@map("channel")
+}
+
+// Posts del feed. Soporta hilos anidados vía parentId (autorreferencia).
+model Post {
+  id         String    @id @default(cuid())
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  channelId  String?
+  channel    Channel?  @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  parentId   String?
+  parent     Post?     @relation("PostThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Post[]    @relation("PostThread")
+  content    String
+  isOfficial Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  editedAt   DateTime?
+
+  reactions     Reaction[]
+  attachments   Attachment[]
+  mentions      Mention[]
+  notifications Notification[]
+
+  @@index([authorId])
+  @@index([channelId])
+  @@index([parentId])
+  @@map("post")
+}
+
+// Reacciones tipadas. Un usuario puede dar varios tipos a un post, no duplicar.
+model Reaction {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  type      ReactionType
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, postId, type])
+  @@index([postId])
+  @@index([userId])
+  @@map("reaction")
+}
+
+// Adjuntos de un post (subida real en Fase 8; aquí solo el modelo).
+model Attachment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  url       String
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+  @@map("attachment")
+}
+
+// Seguimiento entre usuarios para el feed personalizado.
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follow")
+}
+
+// Menciones de usuarios en un post.
+model Mention {
+  id              String   @id @default(cuid())
+  postId          String
+  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mentionedUserId String
+  mentionedUser   User     @relation(fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([postId, mentionedUserId])
+  @@index([mentionedUserId])
+  @@map("mention")
+}
+
+// Notificaciones al destinatario, provocadas por un actor.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("notificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User             @relation("notificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  postId    String?
+  post      Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([actorId])
+  @@index([postId])
+  @@map("notification")
 }
