@@ -51,8 +51,12 @@ export type PostWithMeta = {
   reactionsTotal: number;
   /** Desglose por tipo (LIKE, CELEBRATE, INSIGHTFUL, SUPPORT). */
   reactionsByType: ReactionBreakdown;
-  /** Tipo con el que el usuario ACTUAL ha reaccionado, o null. */
-  viewerReaction: ReactionType | null;
+  /**
+   * Tipos con los que el usuario ACTUAL ha reaccionado a este post.
+   * El modelo permite VARIOS tipos por usuario y post (unique incluye `type`),
+   * por eso es un array (vacío si el viewer no ha reaccionado). Fase 5a.
+   */
+  viewerReaction: ReactionType[];
 };
 
 export type FeedPage = {
@@ -137,12 +141,12 @@ type RawPost = {
 // Mapea la fila cruda al tipo de salida, calculando desgloses en memoria.
 function toPostWithMeta(raw: RawPost, viewerId: string): PostWithMeta {
   const reactionsByType: ReactionBreakdown = { ...EMPTY_BREAKDOWN };
-  let viewerReaction: ReactionType | null = null;
+  const viewerReaction: ReactionType[] = [];
 
   for (const r of raw.reactions) {
     reactionsByType[r.type] += 1;
     if (r.userId === viewerId) {
-      viewerReaction = r.type;
+      viewerReaction.push(r.type);
     }
   }
 
@@ -275,3 +279,154 @@ export async function getChannels(): Promise<ChannelSummary[]> {
     postCount: c._count.posts,
   }));
 }
+
+// ── Feed personalizado (Fase 5a) ────────────────────────────────────────────
+
+/**
+ * Feed de posts RAÍZ de los usuarios que el viewer SIGUE (más, por defecto, los
+ * suyos propios, para que el feed nunca quede vacío al empezar a seguir gente).
+ * Misma forma `FeedPage`/`PostWithMeta` que `getFeed`: la UI lo consume igual.
+ *
+ * Anti-N+1: una sola query a `follow` para resolver los ids seguidos, y luego
+ * el mismo `postSelect` compartido con `authorId in (...)`. Cero queries por fila.
+ */
+export async function getFollowingFeed(params?: {
+  cursor?: string;
+  limit?: number;
+  /** Incluir también los posts propios del viewer (default true). */
+  includeOwn?: boolean;
+}): Promise<FeedPage> {
+  const viewerId = await requireViewerId();
+  const limit = Math.min(
+    Math.max(params?.limit ?? DEFAULT_LIMIT, 1),
+    MAX_LIMIT,
+  );
+  const includeOwn = params?.includeOwn ?? true;
+
+  // 1 query: ids a los que sigue el viewer.
+  const followed = await prisma.follow.findMany({
+    where: { followerId: viewerId },
+    select: { followingId: true },
+  });
+
+  const authorIds = followed.map((f) => f.followingId);
+  if (includeOwn) {
+    authorIds.push(viewerId);
+  }
+
+  // Sin seguidos (ni propios): feed vacío sin tocar `post`.
+  if (authorIds.length === 0) {
+    return { posts: [], nextCursor: null };
+  }
+
+  const rows = (await prisma.post.findMany({
+    where: {
+      parentId: null,
+      authorId: { in: authorIds },
+    },
+    select: postSelect,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    ...(params?.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
+  })) as RawPost[];
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  return {
+    posts: page.map((r) => toPostWithMeta(r, viewerId)),
+    nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
+  };
+}
+
+// ── Estado de follow para perfiles/cards (Fase 5a) ──────────────────────────
+
+export type FollowState = {
+  targetUserId: string;
+  /** ¿El viewer sigue a este usuario? */
+  isFollowing: boolean;
+  /** Nº de seguidores del usuario objetivo. */
+  followerCount: number;
+  /** Nº de usuarios a los que el objetivo sigue. */
+  followingCount: number;
+  /** El propio usuario (no se puede seguir a uno mismo). */
+  isSelf: boolean;
+};
+
+/**
+ * Estado de seguimiento del viewer respecto a `targetUserId`, más los conteos
+ * de seguidores/seguidos del objetivo. Para cards de perfil y botones de follow.
+ */
+export async function getFollowState(
+  targetUserId: string,
+): Promise<FollowState> {
+  const viewerId = await requireViewerId();
+  const isSelf = viewerId === targetUserId;
+
+  const [followerCount, followingCount, existing] = await Promise.all([
+    prisma.follow.count({ where: { followingId: targetUserId } }),
+    prisma.follow.count({ where: { followerId: targetUserId } }),
+    isSelf
+      ? Promise.resolve(null)
+      : prisma.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: viewerId,
+              followingId: targetUserId,
+            },
+          },
+          select: { id: true },
+        }),
+  ]);
+
+  return {
+    targetUserId,
+    isFollowing: existing !== null,
+    followerCount,
+    followingCount,
+    isSelf,
+  };
+}
+
+// ── Estado de reacciones de un post (Fase 5a) ───────────────────────────────
+
+/**
+ * Estado de reacciones de UN post, listo para que la UI confirme un toggle:
+ * desglose por tipo, total y los tipos puestos por `viewerId`. Calculado en
+ * memoria sobre un único `select` acotado (`{ type, userId }`), sin N+1.
+ * Reutilizado por `toggleReaction` para devolver el estado resultante.
+ */
+export async function getPostReactionState(
+  postId: string,
+  viewerId: string,
+): Promise<{
+  postId: string;
+  reactionsByType: ReactionBreakdown;
+  reactionsTotal: number;
+  viewerReaction: ReactionType[];
+}> {
+  const reactions = await prisma.reaction.findMany({
+    where: { postId },
+    select: { type: true, userId: true },
+  });
+
+  const reactionsByType: ReactionBreakdown = { ...EMPTY_BREAKDOWN };
+  const viewerReaction: ReactionType[] = [];
+  for (const r of reactions) {
+    reactionsByType[r.type] += 1;
+    if (r.userId === viewerId) {
+      viewerReaction.push(r.type);
+    }
+  }
+
+  return {
+    postId,
+    reactionsByType,
+    reactionsTotal: reactions.length,
+    viewerReaction,
+  };
+}
+
+export type PostReactionState = Awaited<
+  ReturnType<typeof getPostReactionState>
+>;
