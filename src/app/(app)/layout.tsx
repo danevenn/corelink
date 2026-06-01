@@ -1,10 +1,13 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { EventStreamProvider } from "@/components/events/event-stream-provider";
 import { AppShell } from "@/components/feed/app-shell";
 import { ChannelNav } from "@/components/feed/channel-nav";
+import { NotificationBell } from "@/components/feed/notification-bell";
 import { UserMenu } from "@/components/feed/user-menu";
 import { auth } from "@/lib/auth";
+import { getUnreadCount } from "@/server/notifications";
 import { getChannels } from "@/server/posts";
 import { getViewer } from "@/server/viewer";
 
@@ -25,25 +28,32 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  const unread = await getUnreadCount();
+
   return (
-    <AppShell
-      sidebar={
-        <Suspense fallback={<SidebarSkeleton />}>
-          <ChannelList />
-        </Suspense>
-      }
-      user={
-        <UserMenu
-          avatarUrl={viewer.avatarUrl}
-          displayName={viewer.displayName}
-          email={viewer.email}
-          id={viewer.id}
-          isAnonymous={viewer.isAnonymous}
-        />
-      }
-    >
-      {children}
-    </AppShell>
+    // Una sola EventSource para toda la zona autenticada: la campana la consume
+    // hoy; el chat de la Fase 8 reutilizará la MISMA conexión sin duplicarla.
+    <EventStreamProvider>
+      <AppShell
+        notifications={<NotificationBell initialUnread={unread} />}
+        sidebar={
+          <Suspense fallback={<SidebarSkeleton />}>
+            <ChannelList />
+          </Suspense>
+        }
+        user={
+          <UserMenu
+            avatarUrl={viewer.avatarUrl}
+            displayName={viewer.displayName}
+            email={viewer.email}
+            id={viewer.id}
+            isAnonymous={viewer.isAnonymous}
+          />
+        }
+      >
+        {children}
+      </AppShell>
+    </EventStreamProvider>
   );
 }
 

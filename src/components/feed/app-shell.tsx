@@ -17,10 +17,12 @@ type Props = {
   sidebar: ReactNode;
   /** Cabecera de usuario (avatar + nombre + logout). */
   user: ReactNode;
+  /** Campana de notificaciones (island con contador en vivo). */
+  notifications: ReactNode;
   children: ReactNode;
 };
 
-export function AppShell({ sidebar, user, children }: Props) {
+export function AppShell({ sidebar, user, notifications, children }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -89,6 +91,7 @@ export function AppShell({ sidebar, user, children }: Props) {
             >
               <SearchIcon className="size-5" />
             </Link>
+            {notifications}
             {user}
           </div>
         </div>

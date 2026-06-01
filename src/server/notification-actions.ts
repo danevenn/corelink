@@ -14,6 +14,11 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { markReadSchema } from "@/lib/validations/notification";
+import {
+  getNotifications,
+  getUnreadCount,
+  type NotificationsPage,
+} from "@/server/notifications";
 import type { ActionResult } from "@/server/post-actions";
 
 export type MarkReadResult = {
@@ -75,4 +80,22 @@ export async function markNotificationsRead(
       error: { message: "No se pudieron marcar las notificaciones." },
     };
   }
+}
+
+/**
+ * Wrapper `"use server"` de la query `getNotifications` para que el desplegable
+ * (client island) pueda RE-FETCHEAR la lista al abrirse o al llegar un evento
+ * SSE. La query en sí vive en `notifications.ts`; aquí sólo la exponemos como
+ * acción invocable desde el cliente (no reescribe lógica de datos).
+ */
+export async function fetchNotificationsPage(args?: {
+  cursor?: string;
+  limit?: number;
+}): Promise<NotificationsPage> {
+  return getNotifications(args);
+}
+
+/** Wrapper `"use server"` de `getUnreadCount` para refrescos en cliente. */
+export async function fetchUnreadCount(): Promise<number> {
+  return getUnreadCount();
 }
