@@ -9,7 +9,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { SearchIcon } from "./icons";
+import { SearchIcon, ShieldIcon } from "./icons";
 import { SearchInput } from "./search-input";
 
 type Props = {
@@ -21,6 +21,12 @@ type Props = {
   notifications: ReactNode;
   /** Enlace a mensajes (island con badge de no-leídos en vivo). */
   messages: ReactNode;
+  /**
+   * ¿El viewer es admin? DECIDIDO EN SERVIDOR (`isAdmin` en el layout). Solo
+   * controla la visibilidad del enlace "Admin"; el panel se re-protege en su
+   * propio layout server (nunca confiamos solo en ocultar en cliente).
+   */
+  isAdmin?: boolean;
   children: ReactNode;
 };
 
@@ -29,6 +35,7 @@ export function AppShell({
   user,
   notifications,
   messages,
+  isAdmin = false,
   children,
 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -99,6 +106,24 @@ export function AppShell({
             >
               <SearchIcon className="size-5" />
             </Link>
+            {isAdmin ? (
+              <Link
+                aria-current={
+                  pathname.startsWith("/admin") ? "page" : undefined
+                }
+                aria-label="Panel de administración"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
+                  pathname.startsWith("/admin")
+                    ? "bg-brand-soft text-brand"
+                    : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                )}
+                href="/admin"
+              >
+                <ShieldIcon className="size-5" />
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
+            ) : null}
             {messages}
             {notifications}
             {user}

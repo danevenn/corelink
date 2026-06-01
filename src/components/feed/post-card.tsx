@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { PostWithMeta } from "@/server/posts";
 import { Avatar } from "./avatar";
 import { HashIcon, OfficialIcon, ReplyIcon } from "./icons";
+import { ModerateDeleteButton } from "./moderate-delete-button";
 import { OfficialToggle } from "./official-toggle";
 import { PostActionsMenu } from "./post-actions-menu";
 import { ReactionBar } from "./reaction-bar";
@@ -166,6 +167,13 @@ export function PostCard({
 
           {isAuthor ? (
             <PostActionsMenu initialContent={post.content} postId={post.id} />
+          ) : canModerate ? (
+            // Staff (admin/moderator) puede retirar contenido ajeno desde el
+            // feed normal. Visualmente diferenciado de las acciones de autor.
+            <ModerateDeleteButton
+              authorName={post.author.displayName}
+              postId={post.id}
+            />
           ) : null}
         </div>
       </footer>

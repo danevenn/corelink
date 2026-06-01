@@ -262,3 +262,32 @@ export function CalendarIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ShieldIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <title>Administración</title>
+      <path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7z" />
+    </svg>
+  );
+}
+
+export function ArchiveIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <title>Archivar</title>
+      <rect height="5" rx="1" width="20" x="2" y="3" />
+      <path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8M10 12h4" />
+    </svg>
+  );
+}
+
+export function BanIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <title>Baneo</title>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M5.6 5.6l12.8 12.8" />
+    </svg>
+  );
+}

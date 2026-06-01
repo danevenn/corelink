@@ -8,6 +8,7 @@ import { ChannelNav } from "@/components/feed/channel-nav";
 import { NotificationBell } from "@/components/feed/notification-bell";
 import { UserMenu } from "@/components/feed/user-menu";
 import { auth } from "@/lib/auth";
+import { getViewer as getAuthViewer, isAdmin } from "@/server/authz";
 import { getTotalUnread } from "@/server/chat";
 import { getUnreadCount } from "@/server/notifications";
 import { getChannels } from "@/server/posts";
@@ -30,6 +31,11 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  // Rol del viewer (servidor): decide si se muestra el enlace "Admin". El panel
+  // se re-protege en su propio layout; aquí solo evitamos mostrar de más.
+  const authViewer = await getAuthViewer();
+  const viewerIsAdmin = authViewer ? isAdmin(authViewer.role) : false;
+
   const unread = await getUnreadCount();
   const unreadMessages = await getTotalUnread();
 
@@ -38,6 +44,7 @@ export default async function AppLayout({
     // (Fase 8b) reutilizan la MISMA conexión sin duplicarla.
     <EventStreamProvider>
       <AppShell
+        isAdmin={viewerIsAdmin}
         messages={<MessagesNavLink initialUnread={unreadMessages} />}
         notifications={<NotificationBell initialUnread={unread} />}
         sidebar={
