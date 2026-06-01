@@ -216,9 +216,14 @@ model Channel {
   type        ChannelType @default(TOPIC)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  // Archivado lógico (Fase 10a): un canal archivado NO se borra (preserva sus
+  // posts, cuyo channelId es SetNull) y desaparece de la nav/listados normales.
+  // `archivedAt` = momento del archivado; null = activo. Indexable y auditable.
+  archivedAt  DateTime?
   posts       Post[]
   profiles    Profile[]
 
+  @@index([archivedAt])
   @@map("channel")
 }
 

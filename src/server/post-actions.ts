@@ -9,8 +9,9 @@
 //
 // Seguridad:
 //   - Todas exigen sesión (Better Auth). Sin sesión → { ok: false }.
-//   - Autorización a nivel de query: editPost/deletePost filtran por authorId,
-//     de modo que un usuario no puede mutar posts ajenos.
+//   - Autorización: editPost filtra por authorId (un usuario no edita posts
+//     ajenos). deletePost lo permite al AUTOR o al STAFF (admin/moderator) vía
+//     `canModerate()` — la moderación (Fase 10a) puede retirar cualquier post.
 //
 // Revalidación: tras cada mutación se invalida la ruta del feed y la del hilo
 // afectado con `revalidatePath` (Next 16, Node runtime).
@@ -26,6 +27,7 @@ import {
   editPostSchema,
   replyToPostSchema,
 } from "@/lib/validations/post";
+import { canModerate, getViewer } from "@/server/authz";
 import { createNotification } from "@/server/notifications";
 
 // ── Contrato de resultado ───────────────────────────────────────────────────
@@ -241,14 +243,18 @@ export async function editPost(
 }
 
 /**
- * Borra un post. Solo el autor. El cascade del schema arrastra respuestas,
- * reacciones, menciones y adjuntos.
+ * Borra un post/respuesta. Lo permite el AUTOR o el STAFF (admin/moderator):
+ * la moderación (Fase 10a) puede retirar CUALQUIER post o respuesta, mientras
+ * el autor conserva su capacidad de borrar lo suyo. El cascade del schema
+ * arrastra respuestas, reacciones, menciones y adjuntos.
  */
 export async function deletePost(
   id: string,
 ): Promise<ActionResult<{ id: string }>> {
-  const viewerId = await getViewerIdOrNull();
-  if (!viewerId) {
+  // Usamos `getViewer()` (no solo el id) para conocer el ROL y decidir si es
+  // staff. Misma fuente de verdad de autorización que el resto del servidor.
+  const viewer = await getViewer();
+  if (!viewer) {
     return { ok: false, error: { message: "Debes iniciar sesión." } };
   }
 
@@ -265,7 +271,7 @@ export async function deletePost(
 
   try {
     // Recuperamos parentId ANTES de borrar para revalidar el hilo correcto,
-    // y confirmamos propiedad en el mismo paso.
+    // y confirmamos propiedad/permisos en el mismo paso.
     const target = await prisma.post.findUnique({
       where: { id: parsed.data.id },
       select: { authorId: true, parentId: true },
@@ -274,7 +280,10 @@ export async function deletePost(
     if (!target) {
       return { ok: false, error: { message: "Post no encontrado." } };
     }
-    if (target.authorId !== viewerId) {
+    // Autorización: autor del post O staff de moderación. El staff puede borrar
+    // cualquier post/respuesta; un usuario normal solo lo suyo.
+    const isAuthor = target.authorId === viewer.id;
+    if (!isAuthor && !canModerate(viewer.role)) {
       return {
         ok: false,
         error: { message: "No tienes permiso para borrar este post." },

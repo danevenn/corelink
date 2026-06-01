@@ -305,6 +305,8 @@ export async function getChannels(): Promise<ChannelSummary[]> {
   await requireViewerId();
 
   const channels = await prisma.channel.findMany({
+    // Los canales archivados (Fase 10a) NO aparecen en la nav/listados normales.
+    where: { archivedAt: null },
     select: {
       id: true,
       name: true,
@@ -343,11 +345,14 @@ export async function getChannelBySlug(
       slug: true,
       description: true,
       type: true,
+      archivedAt: true,
       _count: { select: { posts: { where: { parentId: null } } } },
     },
   });
 
-  if (!channel) {
+  // Un canal archivado (Fase 10a) se trata como inexistente en la nav normal:
+  // no es accesible por su slug desde el feed público.
+  if (!channel || channel.archivedAt !== null) {
     return null;
   }
 
