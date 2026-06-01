@@ -28,7 +28,17 @@ import {
   getOrCreateDirectSchema,
   sendMessageSchema,
 } from "@/lib/validations/chat";
+import {
+  type ConversationDetail,
+  type ConversationSummary,
+  getConversationById,
+  getConversations,
+  getMessages,
+  getTotalUnread,
+  type MessagesPage,
+} from "@/server/chat";
 import { eventBus } from "@/server/events/bus";
+import { searchUsers, type UserSearchResult } from "@/server/search";
 
 // ── Contrato de resultado (reutiliza la forma de post-actions) ───────────────
 
@@ -430,6 +440,44 @@ export async function sendTyping(
       error: { message: "No se pudo enviar el indicador de escritura." },
     };
   }
+}
+
+// ── Wrappers de lectura para el cliente ──────────────────────────────────────
+// Las QUERIES de chat viven en `chat.ts` (server-only). Estos wrappers
+// `"use server"` las exponen como acciones invocables desde client islands para
+// REFETCHEAR en vivo (al llegar un evento SSE, hacer scroll de historial, etc.),
+// sin reescribir lógica de datos —mismo patrón que `fetchNotificationsPage` (7b).
+
+/** Wrapper cliente de `getConversations` (lista lateral, refetch en vivo). */
+export async function fetchConversations(): Promise<ConversationSummary[]> {
+  return getConversations();
+}
+
+/** Wrapper cliente de `getConversationById` (cabecera + miembros con leído). */
+export async function fetchConversationDetail(
+  conversationId: string,
+): Promise<ConversationDetail | null> {
+  return getConversationById(conversationId);
+}
+
+/** Wrapper cliente de `getMessages` (historial paginado / mensajes nuevos). */
+export async function fetchMessages(
+  conversationId: string,
+  args?: { cursor?: string; limit?: number },
+): Promise<MessagesPage> {
+  return getMessages(conversationId, args);
+}
+
+/** Wrapper cliente de `getTotalUnread` (badge global, reconciliación). */
+export async function fetchTotalUnread(): Promise<number> {
+  return getTotalUnread();
+}
+
+/** Wrapper cliente de `searchUsers` (elegir destinatarios de DM/grupo). */
+export async function searchUsersAction(
+  q: string,
+): Promise<UserSearchResult[]> {
+  return searchUsers(q, { limit: 8 });
 }
 
 // ── Utilidad de error Prisma ──────────────────────────────────────────────────

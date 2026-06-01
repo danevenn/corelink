@@ -40,8 +40,38 @@ export type NotificationStreamEvent = {
   createdAt: number;
 };
 
-/** Unión de eventos que el cliente sabe interpretar. Crecerá en la Fase 8. */
-export type StreamEvent = NotificationStreamEvent;
+/** Mensaje nuevo en una conversación (Fase 8b). Payload mínimo: el cliente
+ * refetchea el contenido con `fetchMessages` si lo necesita. */
+export type MessageStreamEvent = {
+  type: "message";
+  conversationId: string;
+  messageId: string;
+  senderId: string;
+  createdAt: number;
+};
+
+/** Indicador efímero "está escribiendo…" (Fase 8b). No se persiste. */
+export type TypingStreamEvent = {
+  type: "typing";
+  conversationId: string;
+  userId: string;
+  at: number;
+};
+
+/** Confirmación de leído (Fase 8b): hasta cuándo leyó `userId`. */
+export type ReadStreamEvent = {
+  type: "read";
+  conversationId: string;
+  userId: string;
+  lastReadAt: number;
+};
+
+/** Unión de eventos que el cliente sabe interpretar (notificaciones + chat). */
+export type StreamEvent =
+  | NotificationStreamEvent
+  | MessageStreamEvent
+  | TypingStreamEvent
+  | ReadStreamEvent;
 
 /** Nombres de evento SSE a los que un consumidor puede suscribirse. */
 export type StreamEventName = StreamEvent["type"];
@@ -107,10 +137,17 @@ export function EventStreamProvider({ enabled = true, children }: Props) {
       for (const listener of set) listener(parsed);
     };
 
-    // Registramos un handler por tipo de evento conocido. El endpoint emite
-    // `event: notification`; la Fase 8 añadirá `message`/`typing` aquí.
+    // Registramos un handler por cada tipo de evento conocido. El endpoint emite
+    // `event: notification` (Fase 7) y `event: message|typing|read` (Fase 8b),
+    // todos por la MISMA EventSource compartida.
     const onNotification = dispatch("notification");
+    const onMessage = dispatch("message");
+    const onTyping = dispatch("typing");
+    const onRead = dispatch("read");
     source.addEventListener("notification", onNotification as EventListener);
+    source.addEventListener("message", onMessage as EventListener);
+    source.addEventListener("typing", onTyping as EventListener);
+    source.addEventListener("read", onRead as EventListener);
 
     source.onopen = () => setStatus("open");
     // EventSource reconecta solo: onerror marca "connecting" mientras reintenta.
@@ -125,6 +162,9 @@ export function EventStreamProvider({ enabled = true, children }: Props) {
         "notification",
         onNotification as EventListener,
       );
+      source.removeEventListener("message", onMessage as EventListener);
+      source.removeEventListener("typing", onTyping as EventListener);
+      source.removeEventListener("read", onRead as EventListener);
       source.close();
       setStatus("closed");
     };

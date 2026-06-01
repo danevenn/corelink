@@ -18,6 +18,10 @@ import type { ConversationType, MemberRole } from "@/generated/prisma/enums";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
+// Re-export de tipos de enum para que la UI (cliente) los importe desde aquí
+// sin arrastrar el módulo de enums generado al bundle por accidente.
+export type { ConversationType, MemberRole };
+
 // ── Tipos de retorno (fuente de verdad para la UI) ──────────────────────────
 
 /** Participante de una conversación (datos de perfil listos para mostrar). */

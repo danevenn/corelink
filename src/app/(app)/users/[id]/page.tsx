@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { StartDirectButton } from "@/components/chat/start-direct-button";
 import { Avatar } from "@/components/feed/avatar";
 import { EmptyState } from "@/components/feed/empty-state";
 import { FollowButton } from "@/components/feed/follow-button";
@@ -130,15 +131,23 @@ function ProfileHeader({ profile }: { profile: UserProfileView }) {
             src={profile.avatarUrl}
           />
 
-          {/* Oculto si es el propio perfil (FollowButton ya lo gestiona). */}
-          <FollowButton
-            followerCount={profile.follow.followerCount}
-            isFollowing={profile.follow.isFollowing}
-            isSelf={profile.follow.isSelf}
-            showCount={false}
-            targetName={profile.displayName}
-            targetUserId={profile.id}
-          />
+          <div className="flex items-center gap-2">
+            {/* Iniciar/abrir un DM con esta persona (oculto en el propio perfil). */}
+            <StartDirectButton
+              isSelf={profile.follow.isSelf}
+              targetName={profile.displayName}
+              targetUserId={profile.id}
+            />
+            {/* Oculto si es el propio perfil (FollowButton ya lo gestiona). */}
+            <FollowButton
+              followerCount={profile.follow.followerCount}
+              isFollowing={profile.follow.isFollowing}
+              isSelf={profile.follow.isSelf}
+              showCount={false}
+              targetName={profile.displayName}
+              targetUserId={profile.id}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
