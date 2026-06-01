@@ -15,6 +15,7 @@ import { NotificationType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { setOfficialSchema } from "@/lib/validations/post";
 import { requireModerator } from "@/server/authz";
+import { createNotification } from "@/server/notifications";
 import type { ActionResult } from "@/server/post-actions";
 
 export type SetOfficialResult = { postId: string; isOfficial: boolean };
@@ -77,20 +78,16 @@ export async function setPostOfficial(
       data: { isOfficial: parsed.data.isOfficial },
     });
 
-    // 4) Notificación best-effort al autor (no a uno mismo, solo al marcar).
-    if (parsed.data.isOfficial && target.authorId !== gate.id) {
-      try {
-        await prisma.notification.create({
-          data: {
-            userId: target.authorId,
-            actorId: gate.id,
-            type: NotificationType.OFFICIAL_POST,
-            postId: target.id,
-          },
-        });
-      } catch {
-        // No bloqueante: la marca oficial ya está aplicada.
-      }
+    // 4) Notificación al autor (solo al marcar oficial) + evento tiempo real.
+    //    Centralizada en `createNotification`: no auto-notifica y publica al
+    //    bus. No bloqueante: la marca oficial ya está aplicada.
+    if (parsed.data.isOfficial) {
+      await createNotification({
+        userId: target.authorId,
+        actorId: gate.id,
+        type: NotificationType.OFFICIAL_POST,
+        postId: target.id,
+      });
     }
 
     // 5) Revalidación: feed, hilo afectado y vista de canal.

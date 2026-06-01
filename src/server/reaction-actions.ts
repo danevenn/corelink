@@ -18,6 +18,7 @@ import { NotificationType } from "@/generated/prisma/enums";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { toggleReactionSchema } from "@/lib/validations/reaction";
+import { createNotification } from "@/server/notifications";
 import { getPostReactionState, type PostReactionState } from "./posts";
 
 // ── Contrato de resultado (idéntico a post-actions) ─────────────────────────
@@ -115,22 +116,15 @@ export async function toggleReaction(
           data: { userId: viewerId, postId, type },
         });
 
-        // Notificación al autor (no a uno mismo). Best-effort: si falla, no
-        // tumbamos la reacción ya persistida.
-        if (post.authorId !== viewerId) {
-          try {
-            await prisma.notification.create({
-              data: {
-                userId: post.authorId,
-                actorId: viewerId,
-                type: NotificationType.REACTION,
-                postId,
-              },
-            });
-          } catch {
-            // Notificación es secundaria; se ignora su fallo.
-          }
-        }
+        // Notificación al autor (no a uno mismo) + evento en tiempo real.
+        // Centralizada en `createNotification`: no auto-notifica y publica al
+        // bus. Best-effort por diseño; nunca tumba la reacción ya persistida.
+        await createNotification({
+          userId: post.authorId,
+          actorId: viewerId,
+          type: NotificationType.REACTION,
+          postId,
+        });
       } catch (error) {
         if (!isUniqueViolation(error)) {
           throw error;

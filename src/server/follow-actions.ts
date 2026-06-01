@@ -14,6 +14,7 @@ import { NotificationType } from "@/generated/prisma/enums";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { followSchema } from "@/lib/validations/follow";
+import { createNotification } from "@/server/notifications";
 
 // ── Contrato de resultado (idéntico a post-actions) ─────────────────────────
 
@@ -119,18 +120,13 @@ export async function followUser(
         },
       });
 
-      // Notificación FOLLOW (best-effort; nunca al propio viewer por el guard).
-      try {
-        await prisma.notification.create({
-          data: {
-            userId: resolved.targetUserId,
-            actorId: resolved.viewerId,
-            type: NotificationType.FOLLOW,
-          },
-        });
-      } catch {
-        // Notificación secundaria; se ignora su fallo.
-      }
+      // Notificación FOLLOW + evento en tiempo real, centralizada en
+      // `createNotification` (no auto-notifica y publica al bus). Best-effort.
+      await createNotification({
+        userId: resolved.targetUserId,
+        actorId: resolved.viewerId,
+        type: NotificationType.FOLLOW,
+      });
     } catch (error) {
       if (!isUniqueViolation(error)) {
         throw error;

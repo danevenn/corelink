@@ -17,6 +17,7 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { NotificationType } from "@/generated/prisma/enums";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -25,6 +26,7 @@ import {
   editPostSchema,
   replyToPostSchema,
 } from "@/lib/validations/post";
+import { createNotification } from "@/server/notifications";
 
 // ── Contrato de resultado ───────────────────────────────────────────────────
 
@@ -84,12 +86,14 @@ export async function createPost(
 
   try {
     // Si es respuesta, validamos que el padre exista y heredamos su canal
-    // cuando no se especifica uno explícito.
+    // cuando no se especifica uno explícito. Guardamos el autor del padre para
+    // notificarle (REPLY) tras crear la respuesta.
     let resolvedChannelId = channelId ?? null;
+    let parentAuthorId: string | null = null;
     if (parentId) {
       const parent = await prisma.post.findUnique({
         where: { id: parentId },
-        select: { id: true, channelId: true },
+        select: { id: true, channelId: true, authorId: true },
       });
       if (!parent) {
         return {
@@ -98,6 +102,7 @@ export async function createPost(
         };
       }
       resolvedChannelId = channelId ?? parent.channelId;
+      parentAuthorId = parent.authorId;
     } else if (channelId) {
       const channel = await prisma.channel.findUnique({
         where: { id: channelId },
@@ -117,6 +122,22 @@ export async function createPost(
       },
       select: { id: true, parentId: true },
     });
+
+    // Notificación REPLY al autor del post padre (centralizada: no auto-notifica
+    // y publica al bus de tiempo real). Best-effort; no bloquea la respuesta.
+    //
+    // MENTION (@usuario) queda PENDIENTE: aún no hay parsing de menciones en el
+    // contenido. Cuando se implemente, este es el punto natural para, tras
+    // extraer los @handles, llamar a `createNotification` con type MENTION por
+    // cada mencionado (evitando duplicar con el REPLY al mismo autor).
+    if (parentAuthorId) {
+      await createNotification({
+        userId: parentAuthorId,
+        actorId: viewerId,
+        type: NotificationType.REPLY,
+        postId: post.id,
+      });
+    }
 
     revalidateFeed(parentId ?? post.id);
     return { ok: true, data: post };

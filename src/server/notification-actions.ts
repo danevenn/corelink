@@ -1,0 +1,78 @@
+"use server";
+
+// Server Actions de notificaciones (Fase 7a).
+//
+// Contrato consistente con `post-actions.ts`: resultado serializable
+// `ActionResult<T>`; nunca se lanza para el flujo normal.
+//
+// Autorización a nivel de query: el WHERE incluye SIEMPRE `userId: viewerId`,
+// de modo que un usuario solo puede marcar como leídas SUS propias
+// notificaciones, aunque pase ids ajenos (simplemente no coinciden).
+
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { markReadSchema } from "@/lib/validations/notification";
+import type { ActionResult } from "@/server/post-actions";
+
+export type MarkReadResult = {
+  /** Nº de notificaciones marcadas como leídas en esta operación. */
+  updated: number;
+};
+
+async function getViewerIdOrNull(): Promise<string | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.user.id ?? null;
+}
+
+/**
+ * Marca notificaciones como leídas.
+ *
+ * - Sin `ids` (o array vacío): marca TODAS las no leídas del usuario.
+ * - Con `ids`: marca solo esas, y solo si son del usuario (filtro por userId).
+ *
+ * Solo toca filas no leídas (`read: false`) para que `updated` refleje el
+ * cambio real. Revalida `/feed` (donde vive la campana) tras la mutación.
+ */
+export async function markNotificationsRead(
+  ids?: string[],
+): Promise<ActionResult<MarkReadResult>> {
+  const viewerId = await getViewerIdOrNull();
+  if (!viewerId) {
+    return { ok: false, error: { message: "Debes iniciar sesión." } };
+  }
+
+  const parsed = markReadSchema.safeParse({ ids });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        message: "Datos no válidos.",
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      },
+    };
+  }
+
+  const list = parsed.data.ids;
+  const hasIds = Array.isArray(list) && list.length > 0;
+
+  try {
+    const result = await prisma.notification.updateMany({
+      where: {
+        userId: viewerId,
+        read: false,
+        ...(hasIds ? { id: { in: list } } : {}),
+      },
+      data: { read: true },
+    });
+
+    revalidatePath("/feed");
+    return { ok: true, data: { updated: result.count } };
+  } catch {
+    return {
+      ok: false,
+      error: { message: "No se pudieron marcar las notificaciones." },
+    };
+  }
+}
