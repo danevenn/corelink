@@ -90,7 +90,8 @@ const EMPTY_BREAKDOWN: ReactionBreakdown = {
 };
 
 // `select` compartido: trae todo lo necesario para `PostWithMeta` en un query.
-const postSelect = {
+// Exportado para que otras lecturas (búsqueda FTS) reusen la misma forma.
+export const postSelect = {
   id: true,
   content: true,
   isOfficial: true,
@@ -117,7 +118,7 @@ const postSelect = {
   },
 } as const;
 
-type RawPost = {
+export type RawPost = {
   id: string;
   content: string;
   isOfficial: boolean;
@@ -139,7 +140,8 @@ type RawPost = {
 };
 
 // Mapea la fila cruda al tipo de salida, calculando desgloses en memoria.
-function toPostWithMeta(raw: RawPost, viewerId: string): PostWithMeta {
+// Exportado para reuso en la búsqueda FTS (misma forma `PostWithMeta`).
+export function toPostWithMeta(raw: RawPost, viewerId: string): PostWithMeta {
   const reactionsByType: ReactionBreakdown = { ...EMPTY_BREAKDOWN };
   const viewerReaction: ReactionType[] = [];
 
@@ -174,7 +176,8 @@ function toPostWithMeta(raw: RawPost, viewerId: string): PostWithMeta {
 }
 
 // Sesión obligatoria: estas lecturas son del feed interno autenticado.
-async function requireViewerId(): Promise<string> {
+// Exportada para reuso por otras capas de lectura autenticada (búsqueda FTS).
+export async function requireViewerId(): Promise<string> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     throw new Error("No autenticado.");
@@ -278,6 +281,78 @@ export async function getChannels(): Promise<ChannelSummary[]> {
     type: c.type,
     postCount: c._count.posts,
   }));
+}
+
+/**
+ * Cabecera de un canal por su slug. Devuelve null si no existe.
+ * Misma forma `ChannelSummary` que `getChannels` (postCount = posts raíz).
+ */
+export async function getChannelBySlug(
+  slug: string,
+): Promise<ChannelSummary | null> {
+  await requireViewerId();
+
+  const channel = await prisma.channel.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      type: true,
+      _count: { select: { posts: { where: { parentId: null } } } },
+    },
+  });
+
+  if (!channel) {
+    return null;
+  }
+
+  return {
+    id: channel.id,
+    name: channel.name,
+    slug: channel.slug,
+    description: channel.description,
+    type: channel.type,
+    postCount: channel._count.posts,
+  };
+}
+
+/**
+ * Posts RAÍZ marcados como oficiales (isOfficial = true), createdAt desc,
+ * paginado por cursor. `channelSlug` los filtra por canal. Misma forma
+ * `FeedPage`/`PostWithMeta` que `getFeed`, reutilizando `postSelect` (sin N+1).
+ */
+export async function getOfficialPosts(params?: {
+  channelSlug?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<FeedPage> {
+  const viewerId = await requireViewerId();
+  const limit = Math.min(
+    Math.max(params?.limit ?? DEFAULT_LIMIT, 1),
+    MAX_LIMIT,
+  );
+
+  const rows = (await prisma.post.findMany({
+    where: {
+      parentId: null,
+      isOfficial: true,
+      ...(params?.channelSlug ? { channel: { slug: params.channelSlug } } : {}),
+    },
+    select: postSelect,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
+    ...(params?.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
+  })) as RawPost[];
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+
+  return {
+    posts: page.map((r) => toPostWithMeta(r, viewerId)),
+    nextCursor: hasMore ? (page.at(-1)?.id ?? null) : null,
+  };
 }
 
 // ── Feed personalizado (Fase 5a) ────────────────────────────────────────────

@@ -44,7 +44,15 @@ export const deletePostSchema = z.object({
   id: cuid,
 });
 
+// Marcar/desmarcar oficial (Fase 6b). Autorización por rol (staff), no por
+// autor: la action exige `requireModerator()`. Aquí solo validamos la forma.
+export const setOfficialSchema = z.object({
+  postId: cuid,
+  isOfficial: z.boolean(),
+});
+
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type ReplyToPostInput = z.infer<typeof replyToPostSchema>;
 export type EditPostInput = z.infer<typeof editPostSchema>;
 export type DeletePostInput = z.infer<typeof deletePostSchema>;
+export type SetOfficialInput = z.infer<typeof setOfficialSchema>;
