@@ -36,6 +36,20 @@ export type FeedChannel = {
 /** Conteo por cada tipo de reacción. Siempre presentes todas las claves. */
 export type ReactionBreakdown = Record<ReactionType, number>;
 
+/**
+ * Adjunto listo para la UI (Fase 9a). Forma COMPARTIDA entre feed y chat: la
+ * UI (9b) renderiza imágenes/documentos a partir de esto. `key` NO se expone
+ * al cliente (es interno del storage). `width`/`height` ayudan al layout.
+ */
+export type AttachmentView = {
+  id: string;
+  url: string;
+  mime: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+};
+
 export type PostWithMeta = {
   id: string;
   content: string;
@@ -57,6 +71,8 @@ export type PostWithMeta = {
    * por eso es un array (vacío si el viewer no ha reaccionado). Fase 5a.
    */
   viewerReaction: ReactionType[];
+  /** Adjuntos del post (imágenes/PDF), orden de creación. Fase 9a. */
+  attachments: AttachmentView[];
 };
 
 export type FeedPage = {
@@ -113,6 +129,17 @@ export const postSelect = {
   reactions: {
     select: { type: true, userId: true },
   },
+  attachments: {
+    select: {
+      id: true,
+      url: true,
+      mime: true,
+      size: true,
+      width: true,
+      height: true,
+    },
+    orderBy: { createdAt: "asc" },
+  },
   _count: {
     select: { replies: true },
   },
@@ -136,6 +163,14 @@ export type RawPost = {
   };
   channel: { id: string; name: string; slug: string } | null;
   reactions: { type: ReactionType; userId: string }[];
+  attachments: {
+    id: string;
+    url: string;
+    mime: string;
+    size: number;
+    width: number | null;
+    height: number | null;
+  }[];
   _count: { replies: number };
 };
 
@@ -172,6 +207,14 @@ export function toPostWithMeta(raw: RawPost, viewerId: string): PostWithMeta {
     reactionsTotal: raw.reactions.length,
     reactionsByType,
     viewerReaction,
+    attachments: raw.attachments.map((a) => ({
+      id: a.id,
+      url: a.url,
+      mime: a.mime,
+      size: a.size,
+      width: a.width,
+      height: a.height,
+    })),
   };
 }
 

@@ -299,7 +299,7 @@ export async function sendMessage(
   if (!parsed.success) {
     return invalid(parsed.error.flatten().fieldErrors);
   }
-  const { conversationId, content } = parsed.data;
+  const { conversationId, content, attachments } = parsed.data;
 
   try {
     const memberIds = await getMemberIdsIfMember(conversationId, viewerId);
@@ -310,10 +310,29 @@ export async function sendMessage(
       };
     }
 
-    // Multi-write: insertar mensaje + tocar updatedAt → transacción.
+    // Multi-write: insertar mensaje (+ adjuntos) + tocar updatedAt → transacción.
+    // El zod garantiza content o al menos un adjunto; `content` cae a "" para la
+    // columna NOT NULL en mensajes solo-imagen. Cada Attachment queda ligado al
+    // mensaje (messageId set, postId null) cumpliendo el CHECK de exclusividad.
     const message = await prisma.$transaction(async (tx) => {
       const created = await tx.message.create({
-        data: { conversationId, senderId: viewerId, content },
+        data: {
+          conversationId,
+          senderId: viewerId,
+          content: content ?? "",
+          ...(attachments && attachments.length > 0
+            ? {
+                attachments: {
+                  create: attachments.map((a) => ({
+                    url: a.url,
+                    key: a.key,
+                    mime: a.mime,
+                    size: a.size,
+                  })),
+                },
+              }
+            : {}),
+        },
         select: {
           id: true,
           conversationId: true,

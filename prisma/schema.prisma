@@ -264,17 +264,32 @@ model Reaction {
   @@map("reaction")
 }
 
-// Adjuntos de un post (subida real en Fase 8; aquí solo el modelo).
+// Adjunto POLIMÓRFICO (Fase 9a): pertenece a EXACTAMENTE uno de un Post o un
+// Message (no ambos, no ninguno). La exclusividad la garantiza un CHECK
+// constraint en SQL (ver migración `attachment_message`): Prisma no modela
+// CHECKs, pero la columna `key` y las dos FKs opcionales sí están aquí.
+//
+//   - `key`   : clave interna en el storage (para borrar el objeto del backend).
+//               La provee el StorageDriver al subir.
+//   - `width`/`height`: dimensiones de imagen si se conocen (opcional; null en
+//               PDFs o si no se calcularon). La UI (9b) las usa para reservar
+//               espacio y evitar saltos de layout.
 model Attachment {
   id        String   @id @default(cuid())
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
   url       String
+  key       String
   mime      String
   size      Int
+  width     Int?
+  height    Int?
   createdAt DateTime @default(now())
 
   @@index([postId])
+  @@index([messageId])
   @@map("attachment")
 }
 
@@ -390,6 +405,9 @@ model Message {
   content        String
   createdAt      DateTime     @default(now())
   editedAt       DateTime?
+
+  // Adjuntos del mensaje (Fase 9a). Cascade al borrar el mensaje.
+  attachments    Attachment[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])

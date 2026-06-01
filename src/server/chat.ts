@@ -81,7 +81,21 @@ export type ConversationDetail = {
   members: ConversationMemberView[];
 };
 
-/** Mensaje del historial, con su autor. */
+/**
+ * Adjunto de un mensaje, listo para la UI (Fase 9a). Misma forma que el del
+ * feed (`AttachmentView` en posts.ts), re-declarada aquí para no acoplar el
+ * módulo de chat al del feed. `key` interno NO se expone.
+ */
+export type ChatAttachmentView = {
+  id: string;
+  url: string;
+  mime: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+};
+
+/** Mensaje del historial, con su autor y adjuntos. */
 export type ChatMessage = {
   id: string;
   conversationId: string;
@@ -89,6 +103,8 @@ export type ChatMessage = {
   createdAt: Date;
   editedAt: Date | null;
   sender: ChatParticipant;
+  /** Adjuntos del mensaje (imágenes/PDF), orden de creación. Fase 9a. */
+  attachments: ChatAttachmentView[];
 };
 
 /** Página de historial paginado por cursor. */
@@ -369,6 +385,17 @@ export async function getMessages(
       createdAt: true,
       editedAt: true,
       sender: { select: userSelect },
+      attachments: {
+        select: {
+          id: true,
+          url: true,
+          mime: true,
+          size: true,
+          width: true,
+          height: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -390,6 +417,14 @@ export async function getMessages(
       createdAt: row.createdAt,
       editedAt: row.editedAt,
       sender: toParticipant(row.sender),
+      attachments: row.attachments.map((a) => ({
+        id: a.id,
+        url: a.url,
+        mime: a.mime,
+        size: a.size,
+        width: a.width,
+        height: a.height,
+      })),
     }));
 
   return { messages, nextCursor };

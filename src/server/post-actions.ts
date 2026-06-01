@@ -82,7 +82,7 @@ export async function createPost(
       },
     };
   }
-  const { content, channelId, parentId } = parsed.data;
+  const { content, channelId, parentId, attachments } = parsed.data;
 
   try {
     // Si es respuesta, validamos que el padre exista y heredamos su canal
@@ -113,12 +113,28 @@ export async function createPost(
       }
     }
 
+    // Post + adjuntos en la MISMA operación (nested create). El zod garantiza
+    // que hay content o al menos un adjunto; `content` cae a "" para satisfacer
+    // la columna NOT NULL en posts solo-imagen. Cada Attachment queda ligado al
+    // post (postId set, messageId null) cumpliendo el CHECK de exclusividad.
     const post = await prisma.post.create({
       data: {
         authorId: viewerId,
-        content,
+        content: content ?? "",
         channelId: resolvedChannelId,
         parentId: parentId ?? null,
+        ...(attachments && attachments.length > 0
+          ? {
+              attachments: {
+                create: attachments.map((a) => ({
+                  url: a.url,
+                  key: a.key,
+                  mime: a.mime,
+                  size: a.size,
+                })),
+              },
+            }
+          : {}),
       },
       select: { id: true, parentId: true },
     });

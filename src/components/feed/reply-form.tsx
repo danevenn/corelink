@@ -36,7 +36,7 @@ export function ReplyForm({ parentId, viewer }: Props) {
       return;
     }
     startTransition(async () => {
-      const res = await replyToPost(parentId, parsed.data.content);
+      const res = await replyToPost(parentId, parsed.data.content ?? content);
       if (!res.ok) {
         setError(res.error.message);
         return;

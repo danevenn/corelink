@@ -47,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploads locales (driver de almacenamiento local, Fase 9a) — no versionar
+/.uploads/

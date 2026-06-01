@@ -243,6 +243,9 @@ export function MessageThread({
           avatarUrl: null,
           jobTitle: null,
         },
+        // Adjuntos del envío optimista (Fase 9a): aún sin soporte de subida en
+        // esta isla; se rellenará en 9b. Vacío para satisfacer el tipo.
+        attachments: [],
         status: "sending",
       };
       setPending((prev) => [...prev, optimistic]);
@@ -265,6 +268,7 @@ export function MessageThread({
               createdAt: created.createdAt,
               editedAt: null,
               sender: optimistic.sender,
+              attachments: [],
             },
           ];
         });
