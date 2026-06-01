@@ -31,6 +31,7 @@ export function PostCard({
   const isAuthor = post.author.id === viewerId;
   const isReply = variant === "reply";
   const href = `/feed/${post.id}`;
+  const authorHref = `/users/${post.author.id}`;
 
   return (
     <article
@@ -52,8 +53,8 @@ export function PostCard({
       <header className="flex items-start gap-3">
         <Link
           className="shrink-0 rounded-full"
-          href={`mailto:${post.author.email}`}
-          aria-label={`Perfil de ${post.author.displayName}`}
+          href={authorHref}
+          aria-label={`Ver el perfil de ${post.author.displayName}`}
           tabIndex={-1}
         >
           <Avatar
@@ -66,9 +67,12 @@ export function PostCard({
 
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="truncate font-semibold text-foreground">
+            <Link
+              className="truncate rounded font-semibold text-foreground transition hover:text-brand"
+              href={authorHref}
+            >
               {post.author.displayName}
-            </span>
+            </Link>
             {post.author.jobTitle ? (
               <span className="truncate text-xs text-muted-foreground">
                 · {post.author.jobTitle}

@@ -4,6 +4,7 @@
 // Si el autor es el propio viewer (isSelf), FollowButton se oculta solo, y la
 // tarjeta sigue mostrando el resumen de seguidores.
 
+import Link from "next/link";
 import type { FeedAuthor, FollowState } from "@/server/posts";
 import { Avatar } from "./avatar";
 import { FollowButton } from "./follow-button";
@@ -14,17 +15,29 @@ type Props = {
 };
 
 export function AuthorFollowCard({ author, followState }: Props) {
+  const authorHref = `/users/${author.id}`;
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
-      <Avatar
-        name={author.displayName}
-        seed={author.id}
-        size="md"
-        src={author.avatarUrl}
-      />
+      <Link
+        aria-label={`Ver el perfil de ${author.displayName}`}
+        className="shrink-0 rounded-full"
+        href={authorHref}
+      >
+        <Avatar
+          name={author.displayName}
+          seed={author.id}
+          size="md"
+          src={author.avatarUrl}
+        />
+      </Link>
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-semibold text-foreground">
-          {author.displayName}
+        <span className="truncate font-semibold">
+          <Link
+            className="rounded text-foreground transition hover:text-brand"
+            href={authorHref}
+          >
+            {author.displayName}
+          </Link>
         </span>
         <span className="truncate text-xs text-muted-foreground">
           {author.jobTitle ? `${author.jobTitle} · ` : ""}

@@ -108,3 +108,23 @@ export function UsersIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function BriefcaseIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <title>Puesto</title>
+      <rect height="14" rx="2" width="20" x="2" y="7" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </svg>
+  );
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <title>Fecha de alta</title>
+      <rect height="18" rx="2" width="18" x="3" y="4" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}

@@ -1,11 +1,11 @@
 // Tarjeta de persona para resultados de búsqueda (Fase 6c).
 // Server Component presentacional. Reutiliza Avatar + FollowButton (island).
 //
-// Nota: aún no existe página de perfil propia; por eso la tarjeta NO enlaza a un
-// perfil (evitamos rutas rotas). El email se muestra como contacto (mailto), en
-// línea con cómo el resto de la app referencia a los autores. Cuando exista
-// /users/[id] (o similar), basta con envolver el bloque del nombre en un Link.
+// El nombre y el avatar enlazan al perfil `/users/[id]`. El email (mailto) y el
+// FollowButton son hermanos (no anidados dentro del enlace de perfil), así
+// evitamos un `<a>` dentro de otro `<a>`.
 
+import Link from "next/link";
 import type { UserSearchResult } from "@/server/search";
 import { Avatar } from "./avatar";
 import { FollowButton } from "./follow-button";
@@ -17,15 +17,26 @@ type Props = {
 export function UserResultCard({ user }: Props) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
-      <Avatar
-        name={user.displayName}
-        seed={user.userId}
-        size="md"
-        src={user.avatarUrl}
-      />
+      <Link
+        aria-label={`Ver el perfil de ${user.displayName}`}
+        className="shrink-0 rounded-full"
+        href={`/users/${user.userId}`}
+      >
+        <Avatar
+          name={user.displayName}
+          seed={user.userId}
+          size="md"
+          src={user.avatarUrl}
+        />
+      </Link>
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-semibold text-foreground">
-          {user.displayName}
+        <span className="truncate font-semibold">
+          <Link
+            className="rounded text-foreground transition hover:text-brand"
+            href={`/users/${user.userId}`}
+          >
+            {user.displayName}
+          </Link>
           {user.isSelf ? (
             <span className="ml-1.5 text-xs font-normal text-muted-foreground">
               (tú)
