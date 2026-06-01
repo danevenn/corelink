@@ -33,11 +33,64 @@ export type NotificationEvent = {
 };
 
 /**
+ * Evento de mensaje nuevo en una conversación (Fase 8a).
+ * Se publica a cada miembro de la conversación MENOS al emisor (el emisor ya
+ * tiene el mensaje por el retorno de la action). Payload mínimo: el cliente
+ * refetchea el contenido/historial con `getMessages` si lo necesita.
+ */
+export type MessageEvent = {
+  type: "message";
+  /** Conversación a la que pertenece el mensaje. */
+  conversationId: string;
+  /** Id del mensaje recién creado. */
+  messageId: string;
+  /** Autor del mensaje. */
+  senderId: string;
+  /** Epoch ms de creación, para ordenación optimista en cliente. */
+  createdAt: number;
+};
+
+/**
+ * Evento transitorio "está escribiendo…" (Fase 8a). NO se persiste en BD.
+ * Se publica a los demás miembros mientras un usuario teclea; la UI lo muestra
+ * de forma efímera con su propio timeout. El throttle de emisión lo hace el
+ * cliente; el servidor solo reenvía.
+ */
+export type TypingEvent = {
+  type: "typing";
+  /** Conversación donde se está escribiendo. */
+  conversationId: string;
+  /** Usuario que está escribiendo. */
+  userId: string;
+  /** Epoch ms del evento, para que la UI caduque el indicador. */
+  at: number;
+};
+
+/**
+ * Evento de "leído" para confirmaciones de lectura (Fase 8a).
+ * Se publica a los demás miembros cuando alguien marca la conversación como
+ * leída, llevando hasta qué instante leyó (para mover los "checks" de leído).
+ */
+export type ReadEvent = {
+  type: "read";
+  /** Conversación marcada como leída. */
+  conversationId: string;
+  /** Usuario que ha leído. */
+  userId: string;
+  /** Epoch ms hasta el que ha leído (su `lastReadAt`). */
+  lastReadAt: number;
+};
+
+/**
  * Unión discriminada por `type` de todos los eventos que viajan por el bus.
  * Para añadir un nuevo tipo (Fase 8): define su tipo aquí y agrégalo a la unión.
  * El endpoint SSE y los consumidores hacen narrowing por `event.type`.
  */
-export type AppEvent = NotificationEvent;
+export type AppEvent =
+  | NotificationEvent
+  | MessageEvent
+  | TypingEvent
+  | ReadEvent;
 
 /** Tipo discriminante de un AppEvent (útil para `switch`/SSE `event:`). */
 export type AppEventType = AppEvent["type"];

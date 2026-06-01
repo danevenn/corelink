@@ -12,6 +12,9 @@ export type {
   AppEventType,
   EventBus,
   EventHandler,
+  MessageEvent,
   NotificationEvent,
+  ReadEvent,
+  TypingEvent,
   Unsubscribe,
 } from "./types";

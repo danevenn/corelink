@@ -44,6 +44,11 @@ model User {
   notifications         Notification[] @relation("notificationRecipient")
   notificationsAsActor  Notification[] @relation("notificationActor")
 
+  // Relaciones inversas de mensajería (Fase 8a)
+  conversationsCreated  Conversation[]       @relation("conversationCreator")
+  conversationMembers   ConversationMember[]
+  messagesSent          Message[]
+
   @@unique([email])
   @@map("user")
 }
@@ -168,6 +173,20 @@ enum NotificationType {
   REACTION
   FOLLOW
   OFFICIAL_POST
+}
+
+// Mensajería (Fase 8a).
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+// Rol dentro de una conversación de grupo. ADMIN = creador/administrador del
+// grupo (puede renombrar/gestionar miembros en fases futuras). En DM ambos son
+// MEMBER. No confundir con el `User.role` de plataforma (admin/moderator/user).
+enum MemberRole {
+  MEMBER
+  ADMIN
 }
 
 // Perfil 1:1 con User. departmentId apunta a un Channel de tipo DEPARTMENT.
@@ -305,4 +324,74 @@ model Notification {
   @@index([actorId])
   @@index([postId])
   @@map("notification")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mensajería / Chat (Fase 8a)
+// Conversaciones DIRECT (1:1) y GROUP, mensajes, membresías con no-leídos.
+// El tiempo real (mensaje nuevo, "escribiendo", leído) viaja por el bus SSE
+// existente (src/server/events) ampliando la unión AppEvent; NO crea filas
+// Notification (el chat tiene su propio no-leído vía lastReadAt).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Conversación: hilo de mensajes entre 2 (DIRECT) o N (GROUP) usuarios.
+// `updatedAt` se toca al enviar un mensaje para ordenar por actividad reciente.
+//
+// Unicidad de DM 1:1: `directKey` es una clave determinista del par ordenado
+// (`userIdMenor:userIdMayor`) para las conversaciones DIRECT y `null` para las
+// GROUP. Al ser @unique, garantiza atomicidad y ausencia de carreras en
+// `getOrCreateDirectConversation` (un único par no puede duplicarse). Postgres
+// permite múltiples NULL en una columna unique, así que los grupos no chocan.
+model Conversation {
+  id          String           @id @default(cuid())
+  type        ConversationType
+  /// Nombre del grupo (solo GROUP; null en DM).
+  name        String?
+  /// Clave determinista del par para DM (orden estable); null en GROUP.
+  directKey   String?          @unique
+  createdById String
+  createdBy   User             @relation("conversationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@index([createdById])
+  @@map("conversation")
+}
+
+// Membresía de un usuario en una conversación. `lastReadAt` marca hasta dónde
+// ha leído (para contar no-leídos y emitir confirmaciones de leído).
+model ConversationMember {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           MemberRole   @default(MEMBER)
+  joinedAt       DateTime     @default(now())
+  /// Última lectura del miembro; null = nunca leyó (todo es no-leído).
+  lastReadAt     DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("conversation_member")
+}
+
+// Mensaje de una conversación. `editedAt` para ediciones futuras.
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  createdAt      DateTime     @default(now())
+  editedAt       DateTime?
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("message")
 }

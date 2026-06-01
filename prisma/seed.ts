@@ -146,6 +146,11 @@ async function reset(): Promise<void> {
   await prisma.reaction.deleteMany();
   await prisma.follow.deleteMany();
   await prisma.post.deleteMany();
+  // Chat (Fase 8a). Cascades arrastrarían members/messages al borrar la
+  // conversación, pero somos explícitos y respetamos el orden de FKs.
+  await prisma.message.deleteMany();
+  await prisma.conversationMember.deleteMany();
+  await prisma.conversation.deleteMany();
   await prisma.profile.deleteMany();
   await prisma.channel.deleteMany();
 
@@ -426,6 +431,89 @@ async function main(): Promise<void> {
     ],
   });
   console.log("  ✓ menciones + notificaciones");
+
+  // 8) Chat demo (Fase 8a) ──────────────────────────────────────────────────
+  // Un DM 1:1 (Lucía ↔ Diego) y un grupo (Ana ADMIN + Diego + Noa) con algunos
+  // mensajes, para que la UI de 8b tenga conversaciones que mostrar. Idempotente
+  // por el reset previo. `directKey` se construye igual que en la action
+  // (ids del par ordenados).
+  const directKey = (a: string, b: string): string =>
+    a < b ? `${a}:${b}` : `${b}:${a}`;
+
+  const dm = await prisma.conversation.create({
+    data: {
+      type: "DIRECT",
+      directKey: directKey(uid("lucia"), uid("diego")),
+      createdById: uid("lucia"),
+      members: {
+        create: [
+          { userId: uid("lucia"), role: "MEMBER" },
+          { userId: uid("diego"), role: "MEMBER" },
+        ],
+      },
+    },
+  });
+  await prisma.message.createMany({
+    data: [
+      {
+        conversationId: dm.id,
+        senderId: uid("lucia"),
+        content: "Hola Diego, ¿tienes un momento para revisar el onboarding?",
+      },
+      {
+        conversationId: dm.id,
+        senderId: uid("diego"),
+        content: "¡Claro! Dame 10 min y lo vemos. 👍",
+      },
+      {
+        conversationId: dm.id,
+        senderId: uid("lucia"),
+        content: "Perfecto, te paso el enlace al doc.",
+      },
+    ],
+  });
+  // Lucía ya leyó hasta el final; Diego deja el último mensaje sin leer.
+  await prisma.conversationMember.update({
+    where: {
+      conversationId_userId: { conversationId: dm.id, userId: uid("lucia") },
+    },
+    data: { lastReadAt: new Date() },
+  });
+
+  const group = await prisma.conversation.create({
+    data: {
+      type: "GROUP",
+      name: "Plataforma CoreLink",
+      createdById: uid("ana"),
+      members: {
+        create: [
+          { userId: uid("ana"), role: "ADMIN" },
+          { userId: uid("diego"), role: "MEMBER" },
+          { userId: uid("noa"), role: "MEMBER" },
+        ],
+      },
+    },
+  });
+  await prisma.message.createMany({
+    data: [
+      {
+        conversationId: group.id,
+        senderId: uid("ana"),
+        content: "Equipo, abro este grupo para coordinar la nueva plataforma.",
+      },
+      {
+        conversationId: group.id,
+        senderId: uid("noa"),
+        content: "¡Genial! Subo los mockups esta tarde.",
+      },
+      {
+        conversationId: group.id,
+        senderId: uid("diego"),
+        content: "Yo preparo el esquema de la API. ¿Lo vemos mañana?",
+      },
+    ],
+  });
+  console.log("  ✓ chat demo (1 DM + 1 grupo con mensajes)");
 
   console.log("✅ Seed completado.");
 }
