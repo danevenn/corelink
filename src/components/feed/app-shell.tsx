@@ -4,10 +4,13 @@
 // de canales (fija en desktop, drawer deslizable en móvil) y columna central.
 // Cliente por el estado del drawer y el cierre con Escape / clic fuera.
 
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SearchIcon } from "./icons";
+import { SearchInput } from "./search-input";
 
 type Props = {
   /** Navegación de canales (server-rendered, envuelta en Suspense por el padre). */
@@ -76,7 +79,18 @@ export function AppShell({ sidebar, user, children }: Props) {
             <span>CoreLink</span>
           </a>
 
-          <div className="ml-auto">{user}</div>
+          <div className="ml-auto flex items-center gap-2">
+            <SearchInput />
+            {/* En móvil el input se oculta; enlace directo a la página de búsqueda. */}
+            <Link
+              aria-label="Buscar"
+              className="rounded-lg p-2 text-muted-foreground transition hover:bg-surface-muted hover:text-foreground sm:hidden"
+              href="/search"
+            >
+              <SearchIcon className="size-5" />
+            </Link>
+            {user}
+          </div>
         </div>
       </header>
 

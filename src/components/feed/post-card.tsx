@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { PostWithMeta } from "@/server/posts";
 import { Avatar } from "./avatar";
 import { HashIcon, OfficialIcon, ReplyIcon } from "./icons";
+import { OfficialToggle } from "./official-toggle";
 import { PostActionsMenu } from "./post-actions-menu";
 import { ReactionBar } from "./reaction-bar";
 
@@ -12,10 +13,21 @@ type PostCardProps = {
   viewerId: string;
   /** En el detalle, la card raíz no enlaza a sí misma ni muestra "ver hilo". */
   variant?: "feed" | "detail" | "reply";
+  /**
+   * ¿El viewer es staff (admin/moderator)? Decidido SIEMPRE en servidor.
+   * Si es true, en lugar del badge estático se muestra el control para
+   * marcar/desmarcar oficial (la action re-verifica el rol igualmente).
+   */
+  canModerate?: boolean;
 };
 
 /** Tarjeta de post. Server Component presentacional. */
-export function PostCard({ post, viewerId, variant = "feed" }: PostCardProps) {
+export function PostCard({
+  post,
+  viewerId,
+  variant = "feed",
+  canModerate = false,
+}: PostCardProps) {
   const isAuthor = post.author.id === viewerId;
   const isReply = variant === "reply";
   const href = `/feed/${post.id}`;
@@ -78,7 +90,7 @@ export function PostCard({ post, viewerId, variant = "feed" }: PostCardProps) {
             {post.channel ? (
               <Link
                 className="inline-flex items-center gap-0.5 rounded-full bg-surface-muted px-2 py-0.5 font-medium text-muted-foreground transition hover:text-brand"
-                href={`/feed?channel=${post.channel.slug}`}
+                href={`/channels/${post.channel.slug}`}
               >
                 <HashIcon className="size-3" />
                 {post.channel.name}
@@ -87,7 +99,9 @@ export function PostCard({ post, viewerId, variant = "feed" }: PostCardProps) {
           </div>
         </div>
 
-        {post.isOfficial ? (
+        {canModerate ? (
+          <OfficialToggle isOfficial={post.isOfficial} postId={post.id} />
+        ) : post.isOfficial ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-official-soft px-2.5 py-1 text-xs font-semibold text-official">
             <OfficialIcon className="size-3.5" />
             <span className="hidden sm:inline">Procedimiento oficial</span>

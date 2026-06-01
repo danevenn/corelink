@@ -4,7 +4,7 @@
 // con el slug de la URL (?channel=) y permitir cerrar el panel en móvil.
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { ChannelSummary } from "@/server/posts";
 import { HashIcon, HomeIcon } from "./icons";
@@ -17,8 +17,10 @@ type Props = {
 
 export function ChannelNav({ channels, onNavigate }: Props) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const activeChannel = searchParams.get("channel");
+  // Canales con página dedicada (/channels/[slug]); resaltamos por pathname.
+  const activeChannel = pathname.startsWith("/channels/")
+    ? decodeURIComponent(pathname.slice("/channels/".length))
+    : null;
   const onFeedRoot = pathname === "/feed";
 
   const departments = channels.filter((c) => c.type === "DEPARTMENT");
@@ -29,10 +31,10 @@ export function ChannelNav({ channels, onNavigate }: Props) {
       <ul className="flex flex-col gap-0.5">
         <li>
           <Link
-            aria-current={onFeedRoot && !activeChannel ? "page" : undefined}
+            aria-current={onFeedRoot ? "page" : undefined}
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
-              onFeedRoot && !activeChannel
+              onFeedRoot
                 ? "bg-brand-soft text-brand"
                 : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
             )}
@@ -92,7 +94,7 @@ function ChannelGroup({
                     ? "bg-brand-soft font-medium text-brand"
                     : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
                 )}
-                href={`/feed?channel=${channel.slug}`}
+                href={`/channels/${channel.slug}`}
                 onClick={onNavigate}
                 title={channel.description ?? channel.name}
               >

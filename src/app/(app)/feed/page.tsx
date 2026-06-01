@@ -5,6 +5,7 @@ import { HomeIcon, OfficialIcon } from "@/components/feed/icons";
 import { FeedItem, MotionProvider } from "@/components/feed/motion";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
+import { canModerate, getViewer as getAuthViewer } from "@/server/authz";
 import { getChannels, getFeed, getFollowingFeed } from "@/server/posts";
 import { getViewer } from "@/server/viewer";
 
@@ -20,6 +21,10 @@ export default async function FeedPage({
 
   const viewer = await getViewer();
   if (!viewer) notFound();
+
+  // Rol del viewer (servidor): decide si las cards muestran el control oficial.
+  const authViewer = await getAuthViewer();
+  const staff = authViewer ? canModerate(authViewer.role) : false;
 
   // En "Siguiendo" el filtro por canal no aplica (es un feed personalizado).
   const [feed, channels] = await Promise.all([
@@ -90,7 +95,11 @@ export default async function FeedPage({
               {feed.posts.map((post, index) => (
                 <li key={post.id}>
                   <FeedItem index={index}>
-                    <PostCard post={post} viewerId={viewer.id} />
+                    <PostCard
+                      canModerate={staff}
+                      post={post}
+                      viewerId={viewer.id}
+                    />
                   </FeedItem>
                 </li>
               ))}

@@ -6,6 +6,7 @@ import { ReplyIcon } from "@/components/feed/icons";
 import { FadeIn, FeedItem, MotionProvider } from "@/components/feed/motion";
 import { PostCard } from "@/components/feed/post-card";
 import { ReplyForm } from "@/components/feed/reply-form";
+import { canModerate, getViewer as getAuthViewer } from "@/server/authz";
 import { getFollowState, getPostById } from "@/server/posts";
 import { getViewer } from "@/server/viewer";
 
@@ -24,6 +25,10 @@ export default async function PostThreadPage({
 
   const { post, replies } = thread;
 
+  // Rol del viewer (servidor) para mostrar el control oficial en las cards.
+  const authViewer = await getAuthViewer();
+  const staff = authViewer ? canModerate(authViewer.role) : false;
+
   // Estado de follow del autor del post raíz (para el botón Seguir).
   const followState = await getFollowState(post.author.id);
 
@@ -31,7 +36,7 @@ export default async function PostThreadPage({
     <div className="flex flex-col gap-5">
       <Link
         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
-        href={post.channel ? `/feed?channel=${post.channel.slug}` : "/feed"}
+        href={post.channel ? `/channels/${post.channel.slug}` : "/feed"}
       >
         <svg
           aria-hidden="true"
@@ -51,7 +56,12 @@ export default async function PostThreadPage({
       <MotionProvider>
         <FadeIn className="flex flex-col gap-3">
           <AuthorFollowCard author={post.author} followState={followState} />
-          <PostCard post={post} variant="detail" viewerId={viewer.id} />
+          <PostCard
+            canModerate={staff}
+            post={post}
+            variant="detail"
+            viewerId={viewer.id}
+          />
         </FadeIn>
       </MotionProvider>
 
@@ -76,6 +86,7 @@ export default async function PostThreadPage({
                 <li key={reply.id}>
                   <FeedItem index={index}>
                     <PostCard
+                      canModerate={staff}
                       post={reply}
                       variant="reply"
                       viewerId={viewer.id}
