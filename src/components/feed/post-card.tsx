@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AttachmentGallery } from "@/components/media/attachment-gallery";
 import { absoluteTime, relativeTime } from "@/lib/feed-ui";
 import { cn } from "@/lib/utils";
 import type { PostWithMeta } from "@/server/posts";
@@ -114,17 +115,26 @@ export function PostCard({
         ) : null}
       </header>
 
-      {variant === "feed" ? (
-        <Link
-          className="-mx-1 rounded-lg px-1 outline-none"
-          href={href}
-          aria-label="Abrir hilo del post"
-        >
+      {post.content.trim().length > 0 ? (
+        variant === "feed" ? (
+          <Link
+            className="-mx-1 rounded-lg px-1 outline-none"
+            href={href}
+            aria-label="Abrir hilo del post"
+          >
+            <PostBody content={post.content} />
+          </Link>
+        ) : (
           <PostBody content={post.content} />
-        </Link>
-      ) : (
-        <PostBody content={post.content} />
-      )}
+        )
+      ) : null}
+
+      {post.attachments.length > 0 ? (
+        <AttachmentGallery
+          attachments={post.attachments}
+          authorName={post.author.displayName}
+        />
+      ) : null}
 
       <footer className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <ReactionBar

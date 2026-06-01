@@ -6,10 +6,13 @@
 
 import { motion } from "motion/react";
 import { CheckIcon, DoubleCheckIcon } from "@/components/feed/icons";
+import { AttachmentGallery } from "@/components/media/attachment-gallery";
 import { cn } from "@/lib/utils";
+import type { ChatAttachmentView } from "@/server/chat";
 
 type Props = {
   content: string;
+  attachments: ChatAttachmentView[];
   mine: boolean;
   time: string;
   senderName: string;
@@ -27,6 +30,7 @@ type Props = {
 
 export function MessageBubble({
   content,
+  attachments,
   mine,
   time,
   senderName,
@@ -37,6 +41,8 @@ export function MessageBubble({
   seenBy,
   otherCount,
 }: Props) {
+  const hasText = content.trim().length > 0;
+  const hasAttachments = attachments.length > 0;
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
@@ -51,14 +57,29 @@ export function MessageBubble({
       ) : null}
       <div
         className={cn(
-          "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
-          mine
-            ? "rounded-br-md bg-brand text-brand-foreground"
-            : "rounded-bl-md bg-surface-muted text-foreground",
+          "max-w-[78%] text-sm leading-relaxed",
+          // Solo imágenes (sin texto): sin fondo/padding, las imágenes mandan.
+          hasText
+            ? cn(
+                "rounded-2xl px-3.5 py-2",
+                mine
+                  ? "rounded-br-md bg-brand text-brand-foreground"
+                  : "rounded-bl-md bg-surface-muted text-foreground",
+              )
+            : "",
           status === "failed" && "opacity-70 ring-1 ring-rose-400",
         )}
       >
-        <p className="whitespace-pre-wrap break-words">{content}</p>
+        {hasText ? (
+          <p className="whitespace-pre-wrap break-words">{content}</p>
+        ) : null}
+        {hasAttachments ? (
+          <AttachmentGallery
+            attachments={attachments}
+            authorName={senderName}
+            variant="chat"
+          />
+        ) : null}
       </div>
 
       <div

@@ -33,7 +33,9 @@ import {
   useTypingEvents,
 } from "@/hooks/use-event-stream";
 import { dayKey, dayLabel, readersOf, shortTime } from "@/lib/chat-ui";
+import type { UploadedFile } from "@/lib/upload-client";
 import type {
+  ChatAttachmentView,
   ChatMessage,
   ConversationDetail,
   ConversationMemberView,
@@ -58,7 +60,11 @@ type Props = {
 };
 
 /** Mensaje en vuelo (optimista) hasta que el servidor confirma. */
-type PendingMessage = ChatMessage & { status: "sending" | "failed" };
+type PendingMessage = ChatMessage & {
+  status: "sending" | "failed";
+  /** Adjuntos ya subidos (con key) para poder reintentar sin re-subir. */
+  uploadedAttachments?: UploadedFile[];
+};
 
 /** Type guard: ¿es un mensaje optimista en vuelo (con estado de envío)? */
 function isPending(m: ChatMessage | PendingMessage): m is PendingMessage {
@@ -229,8 +235,21 @@ export function MessageThread({
 
   // ── Envío optimista ─────────────────────────────────────────────────────────
   const doSend = useCallback(
-    async (content: string) => {
+    async (content: string, attachments: UploadedFile[] = []) => {
       const tempId = `temp-${crypto.randomUUID()}`;
+      // Los adjuntos YA están subidos (URL /api/files real, same-origin): los
+      // mostramos en la burbuja optimista para que el emisor vea su imagen al
+      // instante, con ids locales estables hasta el refetch.
+      const optimisticAttachments: ChatAttachmentView[] = attachments.map(
+        (a, i) => ({
+          id: `${tempId}-att-${i}`,
+          url: a.url,
+          mime: a.mime,
+          size: a.size,
+          width: null,
+          height: null,
+        }),
+      );
       const optimistic: PendingMessage = {
         id: tempId,
         conversationId,
@@ -243,19 +262,24 @@ export function MessageThread({
           avatarUrl: null,
           jobTitle: null,
         },
-        // Adjuntos del envío optimista (Fase 9a): aún sin soporte de subida en
-        // esta isla; se rellenará en 9b. Vacío para satisfacer el tipo.
-        attachments: [],
+        attachments: optimisticAttachments,
         status: "sending",
+        uploadedAttachments: attachments,
       };
       setPending((prev) => [...prev, optimistic]);
       requestAnimationFrame(() => scrollToBottom("smooth"));
 
-      const result = await sendMessage({ conversationId, content });
+      const result = await sendMessage({
+        conversationId,
+        content,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      });
       if (result.ok) {
         const created = result.data.message;
         seenMessageIdsRef.current.add(created.id);
-        // Reconcilia: quita el optimista, añade el real confirmado.
+        // Reconcilia: quita el optimista, añade el real confirmado. Conservamos
+        // los adjuntos ya subidos (el servidor no los devuelve en CreatedMessage;
+        // el refetch/router.refresh los traerá con sus ids/dimensiones reales).
         setPending((prev) => prev.filter((m) => m.id !== tempId));
         setMessages((prev) => {
           if (prev.some((m) => m.id === created.id)) return prev;
@@ -268,7 +292,7 @@ export function MessageThread({
               createdAt: created.createdAt,
               editedAt: null,
               sender: optimistic.sender,
-              attachments: [],
+              attachments: optimisticAttachments,
             },
           ];
         });
@@ -288,7 +312,8 @@ export function MessageThread({
       const failed = pending.find((m) => m.id === tempId);
       if (!failed) return;
       setPending((prev) => prev.filter((m) => m.id !== tempId));
-      void doSend(failed.content);
+      // Reenvía con los adjuntos ya subidos (conservan su key para revalidar).
+      void doSend(failed.content, failed.uploadedAttachments ?? []);
     },
     [pending, doSend],
   );
@@ -389,6 +414,7 @@ export function MessageThread({
                   </div>
                 ) : null}
                 <MessageBubble
+                  attachments={msg.attachments}
                   content={msg.content}
                   grouped={groupedWithPrev}
                   mine={mine}

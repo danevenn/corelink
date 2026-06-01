@@ -5,8 +5,13 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
+import {
+  AttachButton,
+  AttachmentPreviews,
+} from "@/components/media/attachment-picker";
+import { useUploads } from "@/hooks/use-uploads";
 import { replyToPostSchema } from "@/lib/validations/post";
-import { replyToPost } from "@/server/post-actions";
+import { createPost } from "@/server/post-actions";
 import { Avatar } from "./avatar";
 import { SendIcon } from "./icons";
 
@@ -24,24 +29,51 @@ export function ReplyForm({ parentId, viewer }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const ref = useRef<HTMLTextAreaElement>(null);
+  const uploads = useUploads();
 
   const remaining = MAX - content.length;
   const tooLong = remaining < 0;
+  const hasText = content.trim().length > 0;
+  // Permite responder SOLO con imagen si hay al menos un adjunto.
+  const canSubmit =
+    !pending &&
+    !uploads.isUploading &&
+    !tooLong &&
+    (hasText || uploads.hasItems);
 
   function submit() {
     setError(null);
-    const parsed = replyToPostSchema.safeParse({ parentId, content });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Revisa tu respuesta.");
-      return;
-    }
+
     startTransition(async () => {
-      const res = await replyToPost(parentId, parsed.data.content ?? content);
+      let attachments: Awaited<ReturnType<typeof uploads.uploadAll>> = [];
+      if (uploads.hasItems) {
+        attachments = await uploads.uploadAll();
+        if (attachments === null) {
+          setError(
+            "Algún archivo no se pudo subir. Revísalo e inténtalo otra vez.",
+          );
+          return;
+        }
+      }
+
+      const parsed = replyToPostSchema.safeParse({
+        parentId,
+        content,
+        ...(attachments && attachments.length > 0 ? { attachments } : {}),
+      });
+      if (!parsed.success) {
+        setError(parsed.error.issues[0]?.message ?? "Revisa tu respuesta.");
+        return;
+      }
+      // `createPost` acepta la forma { parentId, content, attachments }
+      // (replyToPost no propaga adjuntos; aquí los necesitamos).
+      const res = await createPost(parsed.data);
       if (!res.ok) {
         setError(res.error.message);
         return;
       }
       setContent("");
+      uploads.clear();
       ref.current?.focus();
       router.refresh();
     });
@@ -75,29 +107,37 @@ export function ReplyForm({ parentId, viewer }: Props) {
           ref={ref}
           value={content}
         />
+        <AttachmentPreviews uploads={uploads} />
         {error ? (
           <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
             {error}
           </p>
         ) : null}
-        <div className="flex items-center justify-end gap-3">
-          <span
-            className={
-              tooLong
-                ? "text-xs tabular-nums text-rose-600 dark:text-rose-400"
-                : "text-xs tabular-nums text-muted-foreground"
-            }
-          >
-            {remaining}
-          </span>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90 disabled:opacity-50"
-            disabled={pending || content.trim().length === 0 || tooLong}
-            type="submit"
-          >
-            <SendIcon className="size-4" />
-            {pending ? "Enviando…" : "Responder"}
-          </button>
+        <div className="flex items-center justify-between gap-3">
+          <AttachButton disabled={pending} uploads={uploads} />
+          <div className="flex items-center gap-3">
+            <span
+              className={
+                tooLong
+                  ? "text-xs tabular-nums text-rose-600 dark:text-rose-400"
+                  : "text-xs tabular-nums text-muted-foreground"
+              }
+            >
+              {remaining}
+            </span>
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90 disabled:opacity-50"
+              disabled={!canSubmit}
+              type="submit"
+            >
+              <SendIcon className="size-4" />
+              {uploads.isUploading
+                ? "Subiendo…"
+                : pending
+                  ? "Enviando…"
+                  : "Responder"}
+            </button>
+          </div>
         </div>
       </div>
     </form>
