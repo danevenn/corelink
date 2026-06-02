@@ -32,16 +32,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  images: {
-    // Avatares demo servidos por i.pravatar.cc (ver prisma/seed.ts).
-    // next/image exige declarar hosts remotos explícitamente.
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "i.pravatar.cc",
-      },
-    ],
-  },
+  // Los avatares ahora se renderizan por INICIALES (color determinista) o, si
+  // hay foto, desde /api/files same-origin con <img>. Ya no se cargan avatares
+  // externos (i.pravatar), así que no hace falta declarar hosts remotos.
   async headers() {
     return [
       {

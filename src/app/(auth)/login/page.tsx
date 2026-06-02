@@ -2,6 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth-client";
 import { loginSchema } from "@/lib/validations/auth";
 import { demoLogin } from "@/server/demo";
@@ -69,71 +72,52 @@ function LoginForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Iniciar sesión
+      <header className="flex flex-col gap-1.5">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Bienvenido de nuevo
         </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Accede a tu espacio de trabajo en CoreLink.
         </p>
       </header>
 
       <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5">
-          <label
-            className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="email"
-          >
-            Correo electrónico
-          </label>
-          <input
+          <Label htmlFor="email">Correo electrónico</Label>
+          <Input
             autoComplete="email"
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
             id="email"
             name="email"
+            placeholder="tu.nombre@empresa.com"
             type="email"
           />
           {fieldErrors.email ? (
-            <p className="text-xs text-red-600 dark:text-red-400">
-              {fieldErrors.email}
-            </p>
+            <p className="text-xs text-danger">{fieldErrors.email}</p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label
-            className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="password"
-          >
-            Contraseña
-          </label>
-          <input
+          <Label htmlFor="password">Contraseña</Label>
+          <Input
             autoComplete="current-password"
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
             id="password"
             name="password"
             type="password"
           />
           {fieldErrors.password ? (
-            <p className="text-xs text-red-600 dark:text-red-400">
-              {fieldErrors.password}
-            </p>
+            <p className="text-xs text-danger">{fieldErrors.password}</p>
           ) : null}
         </div>
 
         {formError ? (
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {formError}
           </p>
         ) : null}
 
-        <button
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          disabled={pending}
-          type="submit"
-        >
+        <Button className="w-full" disabled={pending} type="submit">
           {pending ? "Entrando…" : "Iniciar sesión"}
-        </button>
+        </Button>
       </form>
 
       {DEMO_ENABLED ? <DemoButton /> : null}
@@ -165,21 +149,25 @@ function DemoButton() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-3 text-xs text-zinc-400">
-        <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />o
-        <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />o
+        <span className="h-px flex-1 bg-border" />
       </div>
-      <button
-        className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+      <Button
+        className="w-full"
         disabled={pending}
         onClick={handleDemo}
         type="button"
+        variant="outline"
       >
         {pending ? "Entrando…" : "Probar demo"}
-      </button>
+      </Button>
+      <p className="text-center text-xs text-muted-foreground">
+        Entra como Lucía Martín y explora CoreLink con datos de ejemplo.
+      </p>
       {error ? (
-        <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}

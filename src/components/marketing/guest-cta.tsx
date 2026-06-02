@@ -8,7 +8,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { demoLogin } from "@/server/demo";
 
 const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
@@ -43,19 +43,18 @@ export function GuestCta({ className, children = "Probar demo" }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <button
-        className={cn(
-          "inline-flex h-11 items-center justify-center rounded-lg border border-border bg-surface px-5 text-sm font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-60",
-          className,
-        )}
+      <Button
+        className={className}
         disabled={pending}
         onClick={handleDemo}
+        size="lg"
         type="button"
+        variant="outline"
       >
         {pending ? "Entrando…" : children}
-      </button>
+      </Button>
       {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}

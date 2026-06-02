@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Wordmark } from "@/components/brand";
 import {
   BellIcon,
   BriefcaseIcon,
@@ -11,11 +12,13 @@ import {
 } from "@/components/feed/icons";
 import { GuestCta } from "@/components/marketing/guest-cta";
 import { Reveal, RevealProvider } from "@/components/marketing/reveal";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 
 // Landing pública de CoreLink (A11Y/SEO-01). Server Component: contenido
-// estático e indexable a nivel de marcado, con dos islands de cliente (la CTA
-// de invitado y los wrappers de animación). Visible sin sesión. La metadata
-// Open Graph/título la aporta el root layout (Fase 11a).
+// estático e indexable a nivel de marcado, con islands de cliente (la CTA de
+// invitado, el conmutador de tema y los wrappers de animación). Visible sin
+// sesión. La metadata Open Graph/título la aporta el root layout (Fase 11a).
 export const metadata: Metadata = {
   title: "Conversaciones de equipo, sin ruido",
   description:
@@ -76,6 +79,7 @@ export default function HomePage() {
           <Hero />
           <Features />
           <OfficialBand />
+          <About />
           <FinalCta />
         </main>
         <SiteFooter />
@@ -84,21 +88,10 @@ export default function HomePage() {
   );
 }
 
-function Wordmark() {
-  return (
-    <span className="flex items-center gap-2 font-semibold text-foreground">
-      <span className="grid size-7 place-items-center rounded-lg bg-brand text-sm font-bold text-brand-foreground">
-        C
-      </span>
-      <span>CoreLink</span>
-    </span>
-  );
-}
-
 function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/70 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
         <Link
           aria-label="CoreLink, inicio"
           className="rounded-lg focus-visible:outline-none"
@@ -106,13 +99,14 @@ function SiteHeader() {
         >
           <Wordmark />
         </Link>
-        <nav aria-label="Acceso" className="flex items-center gap-2">
-          <Link
-            className="inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-            href="/login"
-          >
-            Iniciar sesión
-          </Link>
+        <nav aria-label="Acceso" className="flex items-center gap-1.5">
+          <Button asChild className="hidden sm:inline-flex" variant="ghost">
+            <a href="#sobre-nosotros">Sobre nosotros</a>
+          </Button>
+          <ThemeToggle />
+          <Button asChild>
+            <Link href="/login">Iniciar sesión</Link>
+          </Button>
         </nav>
       </div>
     </header>
@@ -121,15 +115,19 @@ function SiteHeader() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border">
-      {/* Resplandor decorativo de marca; no transmite información. */}
+    <section className="relative overflow-hidden">
+      {/* Resplandores decorativos orgánicos de marca; no informan. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-32 -z-0 mx-auto h-72 max-w-3xl rounded-full bg-brand/15 blur-3xl"
+        className="pointer-events-none absolute inset-x-0 -top-24 -z-0 mx-auto h-80 max-w-4xl rounded-[50%] bg-brand/15 blur-3xl"
       />
-      <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-6 px-4 py-20 text-center sm:py-28">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 top-40 -z-0 size-72 rounded-full bg-accent2/10 blur-3xl"
+      />
+      <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-7 px-4 py-24 text-center sm:py-32">
         <Reveal>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-soft">
             <span
               className="size-1.5 rounded-full bg-brand"
               aria-hidden="true"
@@ -138,8 +136,9 @@ function Hero() {
           </span>
         </Reveal>
         <Reveal delay={0.05}>
-          <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Las conversaciones de tu equipo, en un solo lugar
+          <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
+            Las conversaciones de tu equipo,{" "}
+            <span className="text-brand">en un solo lugar</span>
           </h1>
         </Reveal>
         <Reveal delay={0.1}>
@@ -153,12 +152,9 @@ function Hero() {
           className="flex flex-col items-center gap-3 sm:flex-row"
           delay={0.15}
         >
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-6 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-            href="/login"
-          >
-            Iniciar sesión
-          </Link>
+          <Button asChild size="lg">
+            <Link href="/login">Iniciar sesión</Link>
+          </Button>
           <GuestCta />
         </Reveal>
       </div>
@@ -191,14 +187,14 @@ function Features() {
           return (
             <li key={feature.title}>
               <Reveal delay={Math.min(index * 0.05, 0.25)}>
-                <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-surface p-6 transition hover:border-brand/40 hover:shadow-sm">
-                  <span className="grid size-10 place-items-center rounded-xl bg-brand-soft text-brand">
+                <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-surface p-6 transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-soft">
+                  <span className="grid size-11 place-items-center rounded-2xl bg-brand-soft text-brand">
                     <Icon className="size-5" />
                   </span>
                   <h3 className="font-semibold text-foreground">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {feature.description}
                   </p>
                 </div>
@@ -239,7 +235,11 @@ function OfficialBand() {
         </Reveal>
 
         <Reveal delay={0.1}>
-          <div className="rounded-2xl border border-official/30 bg-surface p-5 shadow-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-official/30 bg-surface p-5 shadow-soft">
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-official/70 to-official/20"
+            />
             <div className="flex items-center gap-2 text-xs font-semibold text-official">
               <ShieldIcon className="size-4" />
               Oficial
@@ -247,7 +247,7 @@ function OfficialBand() {
             <p className="mt-3 font-medium text-foreground">
               Alta de un nuevo proveedor
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               Procedimiento actualizado para registrar proveedores en el
               sistema, con los documentos y validaciones requeridos en cada
               paso.
@@ -269,24 +269,55 @@ function OfficialBand() {
   );
 }
 
+function About() {
+  return (
+    <section
+      aria-labelledby="about-heading"
+      className="mx-auto w-full max-w-3xl scroll-mt-20 px-4 py-20 sm:py-24"
+      id="sobre-nosotros"
+    >
+      <Reveal className="flex flex-col gap-4 text-center">
+        <span className="mx-auto inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-foreground">
+          Sobre nosotros
+        </span>
+        <h2
+          className="text-3xl font-bold tracking-tight text-foreground"
+          id="about-heading"
+        >
+          Una herramienta propia, hecha en casa
+        </h2>
+        <p className="text-pretty text-muted-foreground">
+          CoreLink nace para que la comunicación interna no dependa de tres
+          plataformas externas. Un único espacio, con la información y las
+          personas de la empresa, bajo su control. La documentación completa del
+          producto llegará pronto.
+        </p>
+      </Reveal>
+    </section>
+  );
+}
+
 function FinalCta() {
   return (
-    <section className="mx-auto w-full max-w-3xl px-4 py-20 text-center sm:py-28">
+    <section className="mx-auto w-full max-w-4xl px-4 pb-24">
       <Reveal>
-        <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          Empieza a hablar de lo importante
-        </h2>
-        <p className="mx-auto mt-4 max-w-xl text-pretty text-muted-foreground">
-          Accede a tu espacio de trabajo. Las cuentas las gestiona tu empresa.
-        </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-6 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-            href="/login"
-          >
-            Iniciar sesión
-          </Link>
-          <GuestCta />
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-surface px-6 py-16 text-center shadow-soft sm:px-12">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -top-16 mx-auto h-48 max-w-xl rounded-[50%] bg-brand/15 blur-3xl"
+          />
+          <h2 className="relative text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Empieza a hablar de lo importante
+          </h2>
+          <p className="relative mx-auto mt-4 max-w-xl text-pretty text-muted-foreground">
+            Accede a tu espacio de trabajo. Las cuentas las gestiona tu empresa.
+          </p>
+          <div className="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button asChild size="lg">
+              <Link href="/login">Iniciar sesión</Link>
+            </Button>
+            <GuestCta />
+          </div>
         </div>
       </Reveal>
     </section>

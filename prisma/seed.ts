@@ -232,7 +232,10 @@ async function main(): Promise<void> {
         bio: spec.bio,
         jobTitle: spec.jobTitle,
         departmentId: channelBySlug.get(spec.departmentSlug) ?? null,
-        avatarUrl: `https://i.pravatar.cc/200?u=${encodeURIComponent(spec.email)}`,
+        // Sin foto: el Avatar muestra INICIALES sobre un color determinista
+        // derivado del usuario (estilo Workspace). Evita el desajuste de los
+        // avatares aleatorios de i.pravatar (cara que no cuadra con el nombre).
+        avatarUrl: null,
       },
     });
   }

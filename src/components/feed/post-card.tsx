@@ -38,16 +38,16 @@ export function PostCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 transition-shadow sm:p-5",
-        variant === "feed" && "hover:shadow-md hover:shadow-black/5",
+        "group relative flex flex-col gap-3 rounded-3xl border border-border bg-surface p-4 transition sm:p-5",
+        variant === "feed" && "hover:-translate-y-0.5 hover:shadow-soft",
         post.isOfficial && "border-official/40",
         isReply &&
-          "rounded-xl border-l-2 border-l-border bg-surface p-3 sm:p-4",
+          "rounded-2xl border-l-2 border-l-border bg-surface p-3 sm:p-4",
       )}
     >
       {post.isOfficial ? (
         <span
-          className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-official/70 to-official/20"
+          className="absolute inset-x-0 top-0 h-1 rounded-t-3xl bg-gradient-to-r from-official/70 to-official/20"
           aria-hidden="true"
         />
       ) : null}

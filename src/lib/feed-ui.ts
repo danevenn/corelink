@@ -49,15 +49,21 @@ export function initials(name: string): string {
 }
 
 // Paleta determinista para avatares de fallback (hash simple del id).
+// Paleta determinista para avatares por iniciales (estilo Workspace).
+// Tonos -700/-800: profundos y vivos, con TEXTO BLANCO que cumple contraste AA
+// (≥4.5:1) en todos ellos. Armonizados alrededor del teal de marca (sin azul
+// Google) — verificado con axe en pantallas reales.
 const AVATAR_COLORS = [
-  "bg-indigo-500",
-  "bg-sky-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-violet-500",
-  "bg-teal-500",
-  "bg-cyan-500",
+  "bg-teal-700",
+  "bg-emerald-700",
+  "bg-cyan-800",
+  "bg-violet-700",
+  "bg-fuchsia-700",
+  "bg-rose-700",
+  "bg-amber-700",
+  "bg-orange-700",
+  "bg-sky-800",
+  "bg-indigo-700",
 ];
 
 export function avatarColor(seed: string): string {
@@ -65,18 +71,16 @@ export function avatarColor(seed: string): string {
   for (let i = 0; i < seed.length; i++) {
     hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
   }
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length] ?? "bg-slate-500";
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length] ?? "bg-teal-700";
 }
 
-// Metadatos de cada tipo de reacción: emoji + etiqueta accesible.
-export const REACTION_META: Record<
-  ReactionType,
-  { emoji: string; label: string }
-> = {
-  LIKE: { emoji: "👍", label: "Me gusta" },
-  CELEBRATE: { emoji: "🎉", label: "Celebrar" },
-  INSIGHTFUL: { emoji: "💡", label: "Interesante" },
-  SUPPORT: { emoji: "🤝", label: "Apoyo" },
+// Metadatos de cada tipo de reacción: etiqueta accesible. Los iconos son SVG
+// vectoriales propios (ver components/feed/reaction-icons.tsx), no emojis.
+export const REACTION_META: Record<ReactionType, { label: string }> = {
+  LIKE: { label: "Me gusta" },
+  CELEBRATE: { label: "Celebrar" },
+  INSIGHTFUL: { label: "Interesante" },
+  SUPPORT: { label: "Apoyo" },
 };
 
 export const REACTION_ORDER: ReactionType[] = [

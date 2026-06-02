@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { avatarColor, initials } from "@/lib/feed-ui";
 import { cn } from "@/lib/utils";
 
@@ -6,17 +5,27 @@ type AvatarProps = {
   name: string;
   src: string | null;
   seed: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 };
 
 const SIZES = {
-  sm: { box: "size-8 text-xs", px: 32 },
-  md: { box: "size-10 text-sm", px: 40 },
-  lg: { box: "size-12 text-base", px: 48 },
+  sm: "size-8 text-xs",
+  md: "size-10 text-sm",
+  lg: "size-12 text-base",
+  xl: "size-20 text-2xl",
 } as const;
 
-/** Avatar con imagen (next/image) o fallback de iniciales con color estable. */
+/**
+ * Avatar estilo Workspace.
+ *
+ * Por defecto muestra las INICIALES del nombre sobre un círculo de color
+ * DERIVADO DETERMINÍSTICAMENTE del seed (estable por usuario). Si hay
+ * `avatarUrl` (foto subida, servida same-origin por /api/files), usa la imagen.
+ *
+ * Server Component presentacional. Para imágenes usamos <img> directo: las
+ * fotos van por /api/files auth-gated same-origin, donde next/image no aporta.
+ */
 export function Avatar({
   name,
   src,
@@ -24,16 +33,15 @@ export function Avatar({
   size = "md",
   className,
 }: AvatarProps) {
-  const { box, px } = SIZES[size];
+  const box = SIZES[size];
 
   if (src) {
     return (
-      <Image
+      // biome-ignore lint/performance/noImgElement: foto /api/files auth-gated same-origin; next/image no encaja (regla del proyecto).
+      <img
         alt={`Avatar de ${name}`}
         className={cn("shrink-0 rounded-full object-cover", box, className)}
-        height={px}
         src={src}
-        width={px}
       />
     );
   }
@@ -42,7 +50,7 @@ export function Avatar({
     <span
       aria-hidden="true"
       className={cn(
-        "flex shrink-0 select-none items-center justify-center rounded-full font-semibold text-white",
+        "flex shrink-0 select-none items-center justify-center rounded-full font-semibold tracking-tight text-white",
         avatarColor(seed),
         box,
         className,

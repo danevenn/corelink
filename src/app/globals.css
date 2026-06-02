@@ -1,71 +1,196 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-/* CoreLink — sistema de diseño (Fase 4b).
-   Identidad propia: neutro frío "slate" + acento índigo corporativo.
-   Tailwind v4 CSS-first: tokens en @theme, dark mode por sistema. */
+/* CoreLink — Sistema de diseño R2 ("Workspace luminoso con alma propia").
+   ─────────────────────────────────────────────────────────────────────────
+   Identidad: limpio y luminoso como Google Workspace, pero ORGÁNICO y con un
+   color de marca DISTINTIVO (teal/esmeralda profundo, NO el azul de Google).
+   El ámbar cálido queda reservado a los "procedimientos oficiales".
+
+   Tailwind v4 CSS-first: tokens en variables CSS + @theme inline. Dark mode
+   por CLASE (.dark) mediante next-themes, compatible con shadcn/ui.
+   Documentado en docs/design-system.md. */
+
+/* Dark mode basado en clase (.dark en <html>), gestionado por next-themes. */
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f8fafc;
+  /* Radio base orgánico (más redondeado que el corporativo plano). */
+  --radius: 0.75rem;
+
+  /* ── Superficies luminosas (light) ─────────────────────────────────────
+     Blancos cálidos y un fondo con un punto sutil de verde para "respirar". */
+  --background: #f6f9f8;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --foreground: #0f172a;
-  /* A11Y-02: subido de #64748b (4.34:1) a #52617a → 5.72:1 sobre
-     --surface-muted (#f1f5f9), el fondo más exigente; cumple AA para texto
-     pequeño sin perder el carácter slate frío de la identidad. */
-  --muted-foreground: #52617a;
-  --border: #e2e8f0;
-  --brand: #4f46e5;
+  --surface-muted: #eef3f1;
+  --foreground: #14201d;
+  /* Texto secundario: 5.9:1 sobre --surface-muted → AA holgado. */
+  --muted-foreground: #4f635d;
+  --border: #dde7e3;
+
+  /* ── Marca: teal/esmeralda profundo (distintivo, profesional) ─────────
+     #0f766e: white 5.47:1 y sobre --brand-soft 4.72:1 → AA holgado para
+     texto pequeño (botones, enlaces activos, marca). */
+  --brand: #0f766e;
   --brand-foreground: #ffffff;
-  --brand-soft: #eef2ff;
+  --brand-soft: #e0f2ee;
+
+  /* ── Acento secundario: violeta refinado (apoyo puntual, no compite) ── */
+  --accent2: #6d5ae6;
+  --accent2-soft: #ece9fb;
+
+  /* ── "Procedimiento oficial": ámbar cálido (se mantiene) ───────────── */
   --official: #b45309;
-  --official-soft: #fffbeb;
+  --official-soft: #fdf6ec;
+
+  /* ── Estados ─────────────────────────────────────────────────────────── */
+  --success: #15803d;
+  --success-soft: #e6f4ea;
+  --warning: #b45309;
+  --warning-soft: #fdf6ec;
+  --danger: #be123c;
+  --danger-soft: #fdeaee;
+
+  /* ── Tokens shadcn/ui (mapeados a la identidad CoreLink) ────────────── */
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-muted);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --input: var(--border);
+  --ring: var(--brand);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0e1a;
-    --surface: #0f1629;
-    --surface-muted: #16203a;
-    --foreground: #e8edf7;
-    /* A11Y-02 (dark): #8a96b0 da 5.43:1 sobre --surface-muted (#16203a) →
-       ya cumple AA; verificado, se mantiene. */
-    --muted-foreground: #8a96b0;
-    --border: #1e293b;
-    --brand: #818cf8;
-    --brand-foreground: #0a0e1a;
-    --brand-soft: #1a1f3d;
-    --official: #fbbf24;
-    --official-soft: #1f1a0d;
-  }
+.dark {
+  /* ── Superficies oscuras (verde-petróleo, luminosas sin ser negras) ── */
+  --background: #0b1413;
+  --surface: #11201d;
+  --surface-muted: #182b27;
+  --foreground: #e7f0ed;
+  /* Texto secundario dark: 6.2:1 sobre --surface-muted → AA holgado. */
+  --muted-foreground: #9bb3ac;
+  --border: #243b35;
+
+  --brand: #2dd4bf;
+  --brand-foreground: #07211d;
+  --brand-soft: #14342f;
+
+  --accent2: #a594f9;
+  --accent2-soft: #211d3a;
+
+  --official: #fbbf24;
+  --official-soft: #2a210f;
+
+  --success: #4ade80;
+  --success-soft: #122a1c;
+  --warning: #fbbf24;
+  --warning-soft: #2a210f;
+  --danger: #fb7185;
+  --danger-soft: #2e1318;
+
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--surface-muted);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-muted);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand);
+  --destructive: var(--danger);
+  --destructive-foreground: #07211d;
+  --input: var(--border);
+  --ring: var(--brand);
 }
 
 @theme inline {
+  /* Superficies y texto */
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+
+  /* Marca y acentos */
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
+  --color-accent2: var(--accent2);
+  --color-accent2-soft: var(--accent2-soft);
   --color-official: var(--official);
   --color-official-soft: var(--official-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Estados */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  /* Tokens shadcn/ui */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Radios orgánicos (escala derivada del base) */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  /* Tipografía */
+  --font-sans:
+    var(--font-plus-jakarta), var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
 }
 
 /* Foco visible y consistente para accesibilidad (navegación por teclado). */
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+}
+
+/* Sombras suaves del sistema (elevación luminosa, tinte verde-neutro). */
+.shadow-soft {
+  box-shadow:
+    0 1px 2px rgba(16, 40, 34, 0.04),
+    0 4px 16px rgba(16, 40, 34, 0.06);
+}
+.shadow-elevated {
+  box-shadow: 0 8px 30px rgba(16, 40, 34, 0.1);
 }
 
 /* Respeta prefers-reduced-motion a nivel global como red de seguridad. */

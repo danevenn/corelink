@@ -17,6 +17,7 @@ import { REACTION_META, REACTION_ORDER } from "@/lib/feed-ui";
 import { cn } from "@/lib/utils";
 import type { ReactionBreakdown } from "@/server/posts";
 import { toggleReaction } from "@/server/reaction-actions";
+import { REACTION_ICON } from "./reaction-icons";
 
 type ReactionState = {
   byType: ReactionBreakdown;
@@ -97,6 +98,7 @@ export function ReactionBar({
           const meta = REACTION_META[type];
           const count = optimistic.byType[type];
           const active = optimistic.viewer.includes(type);
+          const Icon = REACTION_ICON[type];
           return (
             <button
               aria-label={`Reaccionar con ${meta.label}${
@@ -104,8 +106,8 @@ export function ReactionBar({
               }`}
               aria-pressed={active}
               className={cn(
-                "group inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition",
-                "hover:border-brand/60 hover:bg-brand-soft",
+                "group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition",
+                "hover:border-brand/60 hover:bg-brand-soft hover:text-brand",
                 active
                   ? "border-brand/50 bg-brand-soft text-brand"
                   : "border-border bg-surface text-muted-foreground",
@@ -116,13 +118,13 @@ export function ReactionBar({
             >
               <motion.span
                 aria-hidden="true"
-                className="text-sm leading-none"
+                className="leading-none"
                 // Pop sutil al cambiar de estado (respeta reduce-motion vía
                 // MotionConfig del provider que envuelve el feed).
                 animate={active ? { scale: [1, 1.35, 1] } : { scale: 1 }}
                 transition={{ duration: 0.28, ease: "easeOut" }}
               >
-                {meta.emoji}
+                <Icon active={active} className="size-4" />
               </motion.span>
               <AnimatePresence initial={false} mode="popLayout">
                 {count > 0 ? (

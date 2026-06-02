@@ -10,6 +10,8 @@ import {
   AttachButton,
   AttachmentPreviews,
 } from "@/components/media/attachment-picker";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useUploads } from "@/hooks/use-uploads";
 import { createPostSchema } from "@/lib/validations/post";
 import { createPost } from "@/server/post-actions";
@@ -91,7 +93,7 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
   return (
     <form
       aria-label="Crear publicación"
-      className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5"
+      className="flex flex-col gap-3 rounded-3xl border border-border bg-surface p-4 shadow-soft sm:p-5"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -108,8 +110,8 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
           <label className="sr-only" htmlFor={textareaId}>
             Comparte algo con tu equipo
           </label>
-          <textarea
-            className="min-h-20 w-full resize-y rounded-xl border border-border bg-surface px-3 py-2.5 text-sm leading-relaxed text-foreground outline-none transition placeholder:text-muted-foreground focus:border-brand"
+          <Textarea
+            className="min-h-20 resize-y rounded-2xl leading-relaxed"
             disabled={pending}
             id={textareaId}
             onChange={(e) => setContent(e.target.value)}
@@ -123,7 +125,7 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
       <AttachmentPreviews uploads={uploads} />
 
       {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -135,7 +137,7 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
             Canal
           </label>
           <select
-            className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground outline-none transition focus:border-brand"
+            className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-foreground outline-none transition focus:border-brand"
             disabled={pending}
             id={channelId}
             onChange={(e) => setChannel(e.target.value)}
@@ -155,24 +157,20 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
             aria-live="polite"
             className={
               tooLong
-                ? "text-xs tabular-nums text-rose-600 dark:text-rose-400"
+                ? "text-xs tabular-nums text-danger"
                 : "text-xs tabular-nums text-muted-foreground"
             }
           >
             {remaining}
           </span>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90 disabled:opacity-50"
-            disabled={!canSubmit}
-            type="submit"
-          >
+          <Button disabled={!canSubmit} type="submit">
             <SendIcon className="size-4" />
             {uploads.isUploading
               ? "Subiendo…"
               : pending
                 ? "Publicando…"
                 : "Publicar"}
-          </button>
+          </Button>
         </div>
       </div>
     </form>

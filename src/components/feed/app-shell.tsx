@@ -8,6 +8,8 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { Wordmark } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { SearchIcon, ShieldIcon } from "./icons";
 import { SearchInput } from "./search-input";
@@ -62,8 +64,8 @@ export function AppShell({
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4">
+      <header className="sticky top-0 z-30 border-b border-border bg-surface/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4">
           <button
             aria-controls="channel-drawer"
             aria-expanded={drawerOpen}
@@ -87,13 +89,11 @@ export function AppShell({
           </button>
 
           <a
-            className="flex items-center gap-2 font-semibold text-foreground"
+            aria-label="CoreLink, ir al feed"
+            className="rounded-lg focus-visible:outline-none"
             href="/feed"
           >
-            <span className="grid size-7 place-items-center rounded-lg bg-brand text-sm font-bold text-brand-foreground">
-              C
-            </span>
-            <span>CoreLink</span>
+            <Wordmark />
           </a>
 
           <div className="ml-auto flex items-center gap-2">
@@ -126,6 +126,7 @@ export function AppShell({
             ) : null}
             {messages}
             {notifications}
+            <ThemeToggle />
             {user}
           </div>
         </div>
