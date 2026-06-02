@@ -183,7 +183,7 @@ function ModerationRow({
 
       <button
         aria-label={`Borrar contenido de ${post.author.displayName}`}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-danger/40 px-2 py-1 text-xs font-medium text-danger transition hover:bg-danger-soft disabled:opacity-50"
         disabled={pending}
         onClick={() => {
           setError(null);

@@ -13,7 +13,7 @@ export default async function AdminModerationPage() {
 
   if (!("posts" in page)) {
     return (
-      <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+      <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
         {page.error.message}
       </p>
     );

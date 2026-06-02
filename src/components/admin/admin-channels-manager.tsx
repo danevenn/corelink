@@ -170,7 +170,7 @@ function CreateChannelForm({
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4"
+      className="flex flex-col gap-3 rounded-3xl border border-border bg-surface p-5 shadow-soft"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -238,7 +238,7 @@ function CreateChannelForm({
       </label>
 
       {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -385,10 +385,7 @@ function ChannelCard({
             </select>
           </label>
           {error ? (
-            <p
-              className="text-xs text-rose-600 dark:text-rose-400"
-              role="alert"
-            >
+            <p className="text-xs text-danger" role="alert">
               {error}
             </p>
           ) : null}
@@ -438,7 +435,7 @@ function ChannelCard({
             {TYPE_LABEL[channel.type]}
           </span>
           {isArchived ? (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+            <span className="rounded-full bg-official-soft px-2 py-0.5 text-[10px] font-semibold text-official">
               Archivado
             </span>
           ) : null}

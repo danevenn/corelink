@@ -9,6 +9,7 @@
 //   las acciones destructivas (ban/eliminar) pasan SIEMPRE por confirmación.
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { CreateEmployeeDialog } from "@/components/admin/create-employee-dialog";
 import { Avatar } from "@/components/feed/avatar";
 import { BanIcon, SearchIcon, TrashIcon } from "@/components/feed/icons";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -25,10 +26,16 @@ import {
 
 type Role = "user" | "moderator" | "admin";
 
+type DepartmentOption = { id: string; name: string };
+
 type Props = {
   initialPage: AdminUsersPage;
   /** Id del admin que está viendo el panel (para distinguirlo y avisarlo). */
   currentUserId: string;
+  /** ¿El viewer es admin? Controla qué roles ofrece el alta de empleados. */
+  viewerIsAdmin: boolean;
+  /** Canales DEPARTMENT no archivados para el alta de empleados. */
+  departments: DepartmentOption[];
 };
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -37,7 +44,12 @@ const ROLE_LABEL: Record<Role, string> = {
   admin: "Admin",
 };
 
-export function AdminUsersTable({ initialPage, currentUserId }: Props) {
+export function AdminUsersTable({
+  initialPage,
+  currentUserId,
+  viewerIsAdmin,
+  departments,
+}: Props) {
   const [page, setPage] = useState<AdminUsersPage>(initialPage);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -94,19 +106,27 @@ export function AdminUsersTable({ initialPage, currentUserId }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Buscador */}
-      <div className="relative max-w-sm">
-        <label className="sr-only" htmlFor={searchId}>
-          Buscar usuarios por nombre
-        </label>
-        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          className="w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-brand"
-          id={searchId}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre…"
-          type="search"
-          value={search}
+      {/* Cabecera: buscador + alta de empleados */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full max-w-sm">
+          <label className="sr-only" htmlFor={searchId}>
+            Buscar usuarios por nombre
+          </label>
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className="w-full rounded-full border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-brand"
+            id={searchId}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre…"
+            type="search"
+            value={search}
+          />
+        </div>
+
+        <CreateEmployeeDialog
+          departments={departments}
+          onCreated={() => load({ page: 1, search: search.trim() })}
+          viewerIsAdmin={viewerIsAdmin}
         />
       </div>
 
@@ -115,7 +135,7 @@ export function AdminUsersTable({ initialPage, currentUserId }: Props) {
         {status ?? `${page.total} usuarios`}
       </p>
 
-      <div className="overflow-x-auto rounded-2xl border border-border">
+      <div className="overflow-x-auto rounded-3xl border border-border bg-surface shadow-soft">
         <table className="w-full min-w-[42rem] border-collapse text-sm">
           <caption className="sr-only">
             Lista de usuarios con rol, estado y acciones de administración
@@ -172,7 +192,7 @@ export function AdminUsersTable({ initialPage, currentUserId }: Props) {
         </span>
         <div className="flex gap-2">
           <button
-            className="rounded-lg border border-border px-3 py-1.5 font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-40"
+            className="rounded-full border border-border px-3 py-1.5 font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-40"
             disabled={page.page <= 1 || loading}
             onClick={() => load({ page: page.page - 1, search: search.trim() })}
             type="button"
@@ -180,7 +200,7 @@ export function AdminUsersTable({ initialPage, currentUserId }: Props) {
             Anterior
           </button>
           <button
-            className="rounded-lg border border-border px-3 py-1.5 font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-40"
+            className="rounded-full border border-border px-3 py-1.5 font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-40"
             disabled={!page.hasMore || loading}
             onClick={() => load({ page: page.page + 1, search: search.trim() })}
             type="button"
@@ -322,7 +342,7 @@ function UserRow({
           Rol de {user.displayName}
         </label>
         <select
-          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none focus:border-brand disabled:opacity-50"
+          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none transition focus:border-brand disabled:opacity-50"
           disabled={pending}
           id={roleSelectId}
           onChange={(e) => changeRole(e.target.value as Role)}
@@ -338,14 +358,14 @@ function UserRow({
       <td className="px-4 py-3">
         {user.banned ? (
           <span
-            className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+            className="inline-flex items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-xs font-semibold text-danger"
             title={user.banReason ?? "Baneado"}
           >
             <BanIcon className="size-3" />
             Baneado
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-[#0f5c2e] dark:text-success">
             Activo
           </span>
         )}
@@ -384,7 +404,7 @@ function UserRow({
             </button>
           )}
           <button
-            className="inline-flex items-center gap-1 rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
+            className="inline-flex items-center gap-1 rounded-md border border-danger/40 px-2 py-1 text-xs font-medium text-danger transition hover:bg-danger-soft disabled:opacity-50"
             disabled={pending}
             onClick={() => {
               setDialogError(null);

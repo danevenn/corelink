@@ -2,6 +2,9 @@
 
 // Subnavegación del panel admin (Usuarios / Canales / Moderación).
 // Cliente solo para resaltar la sub-ruta activa por pathname.
+//
+// R2: migrada al sistema de diseño — pestañas en "píldora" coherentes con
+// `FeedTabs` (borde + fondo `surface-muted`, activa elevada sobre `surface`).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,7 +22,7 @@ export function AdminTabs() {
   return (
     <nav
       aria-label="Secciones de administración"
-      className="flex gap-1 border-b border-border"
+      className="flex w-fit items-center gap-1 overflow-x-auto rounded-full border border-border bg-surface-muted p-1"
     >
       {TABS.map((tab) => {
         const active = pathname.startsWith(tab.href);
@@ -27,10 +30,10 @@ export function AdminTabs() {
           <Link
             aria-current={active ? "page" : undefined}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition",
+              "rounded-full px-4 py-1.5 text-sm font-medium transition",
               active
-                ? "border-brand text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
             href={tab.href}
             key={tab.href}

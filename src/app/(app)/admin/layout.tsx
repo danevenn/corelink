@@ -25,22 +25,24 @@ export default async function AdminLayout({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-brand-soft text-brand">
-            <ShieldIcon className="size-5" />
+      <header className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-6 shadow-soft">
+        <div className="flex items-start gap-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand">
+            <ShieldIcon className="size-6" />
           </span>
-          <h1 className="text-lg font-semibold text-foreground">
-            Administración
-          </h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              Administración
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gestión de usuarios, canales y moderación de contenido. Acceso
+              restringido a administradores.
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Gestión de usuarios, canales y moderación de contenido. Acceso
-          restringido a administradores.
-        </p>
-      </header>
 
-      <AdminTabs />
+        <AdminTabs />
+      </header>
 
       <div>{children}</div>
     </div>

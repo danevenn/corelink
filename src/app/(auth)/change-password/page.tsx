@@ -1,21 +1,28 @@
 "use client";
 
-// Página de CAMBIO DE CONTRASEÑA (R1) — funcional, SIN pulir.
+// Página de CAMBIO DE CONTRASEÑA (R2) — migrada al sistema de diseño.
 //
-// El rediseño visual lo hará frontend-ui (R2). Aquí solo dejamos un formulario
-// accesible y funcional para:
-//   - el cambio FORZADO del primer login (cuentas dadas de alta por la empresa),
+// Coherente con el login: tarjeta centrada del layout `(auth)`, inputs/botones
+// shadcn, tokens de marca. Cubre dos casos:
+//   - el cambio FORZADO del primer login (cuentas dadas de alta por la empresa,
+//     que llegan aquí con `mustChangePassword=true` desde el gate de `(app)`),
 //   - un cambio voluntario.
 // Tras el cambio, el gate de `(app)/layout.tsx` deja pasar (mustChangePassword
 // queda en false) y enviamos al feed.
 
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { changePasswordSchema } from "@/lib/validations/auth";
 import { changeOwnPassword } from "@/server/account";
 
 export default function ChangePasswordPage() {
   const router = useRouter();
+  const currentId = useId();
+  const newId = useId();
+  const confirmId = useId();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -26,9 +33,19 @@ export default function ChangePasswordPage() {
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
+    const currentPassword = String(formData.get("currentPassword") ?? "");
+    const newPassword = String(formData.get("newPassword") ?? "");
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+    // Confirmación: espejo en cliente (el servidor no la necesita).
+    if (newPassword !== confirmPassword) {
+      setFieldErrors({ confirmPassword: "Las contraseñas no coinciden." });
+      return;
+    }
+
     const parsed = changePasswordSchema.safeParse({
-      currentPassword: formData.get("currentPassword"),
-      newPassword: formData.get("newPassword"),
+      currentPassword,
+      newPassword,
     });
 
     if (!parsed.success) {
@@ -65,71 +82,82 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+      <header className="flex flex-col gap-1.5">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Cambia tu contraseña
         </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Por seguridad, establece una contraseña nueva antes de continuar.
         </p>
       </header>
 
       <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5">
-          <label
-            className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="currentPassword"
-          >
-            Contraseña actual
-          </label>
-          <input
+          <Label htmlFor={currentId}>Contraseña actual</Label>
+          <Input
+            aria-describedby={
+              fieldErrors.currentPassword ? `${currentId}-error` : undefined
+            }
+            aria-invalid={Boolean(fieldErrors.currentPassword)}
             autoComplete="current-password"
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
-            id="currentPassword"
+            id={currentId}
             name="currentPassword"
             type="password"
           />
           {fieldErrors.currentPassword ? (
-            <p className="text-xs text-red-600 dark:text-red-400">
+            <p className="text-xs text-danger" id={`${currentId}-error`}>
               {fieldErrors.currentPassword}
             </p>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label
-            className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="newPassword"
-          >
-            Nueva contraseña
-          </label>
-          <input
+          <Label htmlFor={newId}>Nueva contraseña</Label>
+          <Input
+            aria-describedby={
+              fieldErrors.newPassword ? `${newId}-error` : undefined
+            }
+            aria-invalid={Boolean(fieldErrors.newPassword)}
             autoComplete="new-password"
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
-            id="newPassword"
+            id={newId}
             name="newPassword"
             type="password"
           />
           {fieldErrors.newPassword ? (
-            <p className="text-xs text-red-600 dark:text-red-400">
+            <p className="text-xs text-danger" id={`${newId}-error`}>
               {fieldErrors.newPassword}
             </p>
           ) : null}
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={confirmId}>Repite la nueva contraseña</Label>
+          <Input
+            aria-describedby={
+              fieldErrors.confirmPassword ? `${confirmId}-error` : undefined
+            }
+            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+            autoComplete="new-password"
+            id={confirmId}
+            name="confirmPassword"
+            type="password"
+          />
+          {fieldErrors.confirmPassword ? (
+            <p className="text-xs text-danger" id={`${confirmId}-error`}>
+              {fieldErrors.confirmPassword}
+            </p>
+          ) : null}
+        </div>
+
         {formError ? (
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {formError}
           </p>
         ) : null}
 
-        <button
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          disabled={pending}
-          type="submit"
-        >
+        <Button className="w-full" disabled={pending} type="submit">
           {pending ? "Guardando…" : "Guardar contraseña"}
-        </button>
+        </Button>
       </form>
     </div>
   );
