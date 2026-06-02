@@ -6,6 +6,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
+import { EmojiPicker } from "@/components/emoji/emoji-picker";
 import {
   AttachButton,
   AttachmentPreviews,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useUploads } from "@/hooks/use-uploads";
+import { insertAtCursor, restoreCaret } from "@/lib/insert-at-cursor";
 import { createPostSchema } from "@/lib/validations/post";
 import { createPost } from "@/server/post-actions";
 import type { ChannelSummary } from "@/server/posts";
@@ -48,6 +50,16 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
     !uploads.isUploading &&
     !tooLong &&
     (hasText || uploads.hasItems);
+
+  function insertEmoji(emoji: string) {
+    const { value, caret } = insertAtCursor(
+      textareaRef.current,
+      content,
+      emoji,
+    );
+    setContent(value);
+    restoreCaret(textareaRef.current, caret);
+  }
 
   function submit() {
     setError(null);
@@ -133,6 +145,7 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <AttachButton disabled={pending} uploads={uploads} />
+          <EmojiPicker disabled={pending} onSelect={insertEmoji} />
           <label className="sr-only" htmlFor={channelId}>
             Canal
           </label>

@@ -5,6 +5,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
+import { EmojiPicker } from "@/components/emoji/emoji-picker";
 import {
   AttachButton,
   AttachmentPreviews,
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useUploads } from "@/hooks/use-uploads";
+import { insertAtCursor, restoreCaret } from "@/lib/insert-at-cursor";
 import { replyToPostSchema } from "@/lib/validations/post";
 import { createPost } from "@/server/post-actions";
 import { Avatar } from "./avatar";
@@ -42,6 +44,12 @@ export function ReplyForm({ parentId, viewer }: Props) {
     !uploads.isUploading &&
     !tooLong &&
     (hasText || uploads.hasItems);
+
+  function insertEmoji(emoji: string) {
+    const { value, caret } = insertAtCursor(ref.current, content, emoji);
+    setContent(value);
+    restoreCaret(ref.current, caret);
+  }
 
   function submit() {
     setError(null);
@@ -116,7 +124,10 @@ export function ReplyForm({ parentId, viewer }: Props) {
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-3">
-          <AttachButton disabled={pending} uploads={uploads} />
+          <div className="flex items-center gap-2">
+            <AttachButton disabled={pending} uploads={uploads} />
+            <EmojiPicker disabled={pending} onSelect={insertEmoji} />
+          </div>
           <div className="flex items-center gap-3">
             <span
               aria-live="polite"

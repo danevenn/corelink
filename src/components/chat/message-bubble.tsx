@@ -5,6 +5,7 @@
 // MotionConfig del árbol). Muestra estado de envío/leído de los mensajes propios.
 
 import { motion } from "motion/react";
+import { EmojiText } from "@/components/emoji/emoji-text";
 import { CheckIcon, DoubleCheckIcon } from "@/components/feed/icons";
 import { AttachmentGallery } from "@/components/media/attachment-gallery";
 import { cn } from "@/lib/utils";
@@ -71,7 +72,9 @@ export function MessageBubble({
         )}
       >
         {hasText ? (
-          <p className="whitespace-pre-wrap break-words">{content}</p>
+          <p className="whitespace-pre-wrap break-words">
+            <EmojiText>{content}</EmojiText>
+          </p>
         ) : null}
         {hasAttachments ? (
           <AttachmentGallery

@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { EmojiText } from "@/components/emoji/emoji-text";
 import { useChatMessageEvents, useReadEvents } from "@/hooks/use-event-stream";
 import { conversationTitle, shortTime } from "@/lib/chat-ui";
 import { cn } from "@/lib/utils";
@@ -116,9 +117,14 @@ export function ConversationList({ initial, viewerId, activeId }: Props) {
                       unread > 0 ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
-                    {last
-                      ? `${mine ? "Tú: " : ""}${last.snippet}`
-                      : "Sin mensajes"}
+                    {last ? (
+                      <>
+                        {mine ? "Tú: " : ""}
+                        <EmojiText>{last.snippet}</EmojiText>
+                      </>
+                    ) : (
+                      "Sin mensajes"
+                    )}
                   </span>
                   {unread > 0 ? (
                     <span className="ml-auto grid min-w-5 shrink-0 place-items-center rounded-full bg-brand px-1.5 text-[11px] font-bold leading-5 text-brand-foreground tabular-nums">

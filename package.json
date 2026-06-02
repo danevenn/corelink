@@ -24,6 +24,7 @@
     "better-auth": "1.6.13",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "emoji-regex": "10.5.0",
     "lucide-react": "1.17.0",
     "motion": "12.40.0",
     "next": "16.2.6",

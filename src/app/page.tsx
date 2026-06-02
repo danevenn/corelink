@@ -329,7 +329,22 @@ function SiteFooter() {
     <footer className="border-t border-border">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
         <Wordmark />
-        <p>Red social interna de empresa · Proyecto de portfolio</p>
+        <p className="text-center sm:text-right">
+          Red social interna de empresa · Proyecto de portfolio
+          <br className="hidden sm:block" />
+          <span className="text-xs">
+            Emojis por{" "}
+            <a
+              className="underline transition hover:text-foreground"
+              href="https://openmoji.org/"
+              rel="noreferrer"
+              target="_blank"
+            >
+              OpenMoji
+            </a>{" "}
+            (CC BY-SA 4.0)
+          </span>
+        </p>
       </div>
     </footer>
   );

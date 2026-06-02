@@ -98,3 +98,29 @@ con `app-shell`, `post-card`, `post-composer`, `reaction-bar`). El resto de
 pantallas (chat, admin, perfil, notificaciones, búsqueda, cambio de contraseña)
 siguen operativas con el estilo anterior y se migrarán tras la aprobación. Los
 cambios de avatares e iconos de reacción se propagan a toda la app.
+
+## 9. Emojis unificados (OpenMoji)
+
+Todos los emojis INLINE del contenido de usuario (posts, respuestas, chat,
+snippets) se renderizan como **SVG de [OpenMoji](https://openmoji.org/)**, no
+con los emojis del sistema/Apple. Así el look es consistente entre plataformas.
+
+- **Self-host**: el set de color completo (4495 SVG, ~22 MB) vive en
+  `public/emoji/openmoji/<HEXCODE>.svg`. Son **estáticos** y se cargan **bajo
+  demanda** por emoji (lazy, nunca en el bundle JS).
+- **Render**: `<EmojiText>` (`src/components/emoji/emoji-text.tsx`) trocea el
+  texto con `emoji-regex` y emite nodos React (sin `dangerouslySetInnerHTML` →
+  inmune a XSS). Cada emoji se pinta con `<EmojiImg>` (`<img>` lazy a 1.2em,
+  `alt`=nombre). Fallback: nombre OpenMoji con FE0F → sin FE0F → carácter
+  nativo si no hay SVG.
+- **Selector**: `<EmojiPicker>` en los 3 compositores. Pool **curado** (~585
+  emojis por categorías, con buscador) cargado bajo demanda desde
+  `public/emoji/emoji-pool.json`. Inserta el carácter Unicode en el cursor.
+- **Naming OpenMoji**: hexcodes en MAYÚSCULAS unidos por `-`; el VS16 `FE0F`
+  suelto se elimina (❤️ → `2764.svg`) pero se conserva en secuencias ZWJ y
+  keycaps. Lógica en `src/lib/emoji.ts`.
+
+> **Licencia (obligatoria):** los emojis son de **OpenMoji**, licencia
+> **CC BY-SA 4.0**. La atribución aparece en el footer de la landing y en el
+> pie del propio selector. Copia de la licencia en
+> `public/emoji/openmoji/LICENSE.txt`.

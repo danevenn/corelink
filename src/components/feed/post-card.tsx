@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmojiText } from "@/components/emoji/emoji-text";
 import { AttachmentGallery } from "@/components/media/attachment-gallery";
 import { absoluteTime, relativeTime } from "@/lib/feed-ui";
 import { cn } from "@/lib/utils";
@@ -185,7 +186,7 @@ export function PostCard({
 function PostBody({ content }: { content: string }) {
   return (
     <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
-      {content}
+      <EmojiText>{content}</EmojiText>
     </p>
   );
 }

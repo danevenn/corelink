@@ -6,12 +6,14 @@
 // padre (optimista); aquí solo limpiamos y devolvemos el foco.
 
 import { useCallback, useRef, useState } from "react";
+import { EmojiPicker } from "@/components/emoji/emoji-picker";
 import { SendIcon } from "@/components/feed/icons";
 import {
   AttachButton,
   AttachmentPreviews,
 } from "@/components/media/attachment-picker";
 import { useUploads } from "@/hooks/use-uploads";
+import { insertAtCursor, restoreCaret } from "@/lib/insert-at-cursor";
 import type { UploadedFile } from "@/lib/upload-client";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +66,20 @@ export function Composer({ onSend, onTyping }: Props) {
     });
   }, [value, onSend, uploads]);
 
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = textareaRef.current;
+      const { value: next, caret } = insertAtCursor(el, value, emoji);
+      setValue(next);
+      // Reajusta la altura auto-crecible al nuevo contenido y recoloca cursor.
+      requestAnimationFrame(() => {
+        autoGrow();
+        restoreCaret(el, caret);
+      });
+    },
+    [value, autoGrow],
+  );
+
   const canSend =
     !uploads.isUploading &&
     value.length <= MAX_LEN &&
@@ -80,6 +96,7 @@ export function Composer({ onSend, onTyping }: Props) {
       <AttachmentPreviews uploads={uploads} />
       <div className="flex items-end gap-2">
         <AttachButton buttonVariant="icon" uploads={uploads} />
+        <EmojiPicker onSelect={insertEmoji} variant="icon" />
         <label className="sr-only" htmlFor="chat-composer">
           Escribe un mensaje
         </label>
