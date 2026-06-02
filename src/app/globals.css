@@ -9,7 +9,10 @@
   --surface: #ffffff;
   --surface-muted: #f1f5f9;
   --foreground: #0f172a;
-  --muted-foreground: #64748b;
+  /* A11Y-02: subido de #64748b (4.34:1) a #52617a → 5.72:1 sobre
+     --surface-muted (#f1f5f9), el fondo más exigente; cumple AA para texto
+     pequeño sin perder el carácter slate frío de la identidad. */
+  --muted-foreground: #52617a;
   --border: #e2e8f0;
   --brand: #4f46e5;
   --brand-foreground: #ffffff;
@@ -24,6 +27,8 @@
     --surface: #0f1629;
     --surface-muted: #16203a;
     --foreground: #e8edf7;
+    /* A11Y-02 (dark): #8a96b0 da 5.43:1 sobre --surface-muted (#16203a) →
+       ya cumple AA; verificado, se mantiene. */
     --muted-foreground: #8a96b0;
     --border: #1e293b;
     --brand: #818cf8;

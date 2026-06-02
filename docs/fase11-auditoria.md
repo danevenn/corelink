@@ -47,12 +47,14 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
 
 | Severidad | Total | infra | ui |
 |-----------|:-----:|:-----:|:--:|
-| Crítico   | 1     | 0     | 1  |
-| Alto      | 4     | 3 ✅  | 1  |
-| Medio     | 5     | 3 ✅  | 2  |
-| Bajo      | 4     | 1 ✅  | 3  |
+| Crítico   | 1     | 0     | 1 ✅ |
+| Alto      | 4     | 3 ✅  | 1 ✅ |
+| Medio     | 5     | 3 ✅  | 2 ✅ |
+| Bajo      | 4     | 1 ✅  | 3 ✅ |
 
-(✅ = resuelto en Fase 11a)
+(✅ = resuelto/verificado; los `infra` en Fase 11a, los `ui` en Fase 11b.
+Quedan como recomendación para Fase 12: PERF-06, BUNDLE-07 y SEC-11, todos
+`infra` no bloqueantes.)
 
 ---
 
@@ -60,7 +62,7 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
 
 ### CRÍTICO
 
-#### A11Y/SEO-01 · Landing es el boilerplate de create-next-app — `ui`
+#### A11Y/SEO-01 · Landing es el boilerplate de create-next-app — `ui` ✅ RESUELTO (Fase 11b)
 - **Página/archivo:** `src/app/page.tsx`
 - **Descripción:** la home pública sigue siendo la plantilla por defecto: logo
   `next.svg`/`vercel.svg`, h1 "To get started, edit the page.tsx file", párrafos
@@ -74,12 +76,25 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
   `file.svg`, `globe.svg`, `window.svg`) una vez no se usen. Al rehacerla
   desaparece el warning de Image. La metadata Open Graph de la landing ya queda
   bien cubierta por el root layout (infra, ya aplicado).
+- **Aplicado (Fase 11b):** `src/app/page.tsx` reescrita como Server Component
+  público (visible sin sesión, prerender estático) con landing real en español:
+  cabecera con marca + CTA, hero (propuesta de valor "sin depender de Google
+  Chat/Slack/Teams"), grid de 6 features (feed por canales, procedimientos
+  oficiales, chat en tiempo real, notificaciones, búsqueda/perfiles, "todo en
+  casa"), banda de procedimientos oficiales con mock-card (acento ámbar), CTA
+  final y footer. Islands de cliente: `components/marketing/guest-cta.tsx`
+  (`signIn.anonymous()` → `/feed`) y `components/marketing/reveal.tsx`
+  (animaciones motion con `reducedMotion="user"`). Skip-link "Saltar al
+  contenido", landmarks (`header`/`nav`/`main`/`footer`), jerarquía h1→h2→h3.
+  SVGs boilerplate eliminados de `public/`. CONS-12 (warning de Image)
+  desaparecido. Verificado: axe 0 violaciones (claro y oscuro), responsive
+  móvil/desktop, CTAs a `/login` `/register` y guest funcionan.
 
 ---
 
 ### ALTO
 
-#### A11Y-02 · Contraste del texto secundario por debajo de AA — `ui`
+#### A11Y-02 · Contraste del texto secundario por debajo de AA — `ui` ✅ RESUELTO (Fase 11b)
 - **Páginas/archivo:** transversal (`/feed`, `/search`, `/users/[id]`,
   `/admin/*`, etc.). Token en `src/app/globals.css`.
 - **Descripción:** axe reporta `color-contrast` *serious* de forma recurrente
@@ -91,6 +106,12 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
   a ~`#52617a`/`#475569` (slate-600 da ~5.9:1 sobre #f1f5f9) y verificar también
   el equivalente dark (`#8a96b0`). Re-pasar axe tras el cambio: con esto la app
   debería quedar a **0 violaciones automáticas**.
+- **Aplicado (Fase 11b):** `--muted-foreground` claro de `#64748b` → `#52617a`
+  (5.72:1 sobre `--surface-muted` #f1f5f9, el fondo más exigente; AA OK). El
+  valor dark `#8a96b0` ya daba 5.43:1 sobre `--surface-muted` (#16203a) → se
+  mantiene, verificado. Re-pasado axe en `/`, `/feed`, `/search`,
+  `/notifications`, `/messages`, `/admin/users` (claro y oscuro): **0
+  violaciones** en todas. La estética slate fría se conserva.
 
 #### SEC-03 · Sin cabeceras de seguridad HTTP — `infra` ✅ RESUELTO
 - **Archivo:** `next.config.ts`
@@ -149,7 +170,7 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
   optimizar (PERF-06). **No** se aplicó en 11a para no tocar markup de
   componentes (dominio `ui`/arquitectura).
 
-#### A11Y-08 · Verificación manual de teclado/foco en componentes interactivos — `ui`
+#### A11Y-08 · Verificación manual de teclado/foco en componentes interactivos — `ui` ✅ VERIFICADO (Fase 11b)
 - **Descripción:** axe no detecta violaciones de foco, pero los componentes
   interactivos complejos (composer de posts, lightbox de multimedia, diálogos de
   confirmación `confirm-dialog.tsx`, menú de usuario `user-menu.tsx`, hilo de
@@ -158,8 +179,15 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
 - **Recomendación (frontend-ui):** revisar focus-trap y `aria-modal`/`role=dialog`
   en `components/ui/confirm-dialog.tsx` y `components/media/lightbox.tsx`;
   confirmar que el menú de usuario y los desplegables se cierran con teclado.
+- **Verificado (Fase 11b):** `confirm-dialog.tsx` (role=alertdialog, aria-modal,
+  trampa de foco con Tab/Shift+Tab, Escape cierra, foco inicial en confirmar) y
+  `lightbox.tsx` (role=dialog, aria-modal, trampa de foco, Escape, ←/→, guarda y
+  restaura el foco previo, bloquea scroll) ya implementan el patrón completo.
+  `user-menu.tsx` cierra con Escape y clic fuera, con `aria-expanded`/
+  `aria-haspopup`/`role=menu`. No se requieren cambios; axe 0 violaciones de
+  foco. (Sin hallazgos nuevos.)
 
-#### A11Y-09 · Estados vacío/carga/error — cobertura a confirmar — `ui`
+#### A11Y-09 · Estados vacío/carga/error — cobertura a confirmar — `ui` ✅ VERIFICADO (Fase 11b)
 - **Descripción:** existen `loading.tsx`/`error.tsx`/`not-found.tsx` en feed,
   channels, messages, users (buena base) y un `EmptyState` reutilizado. Faltan
   `error.tsx` explícitos en algunas rutas (`/search`, `/notifications`, `/admin/*`)
@@ -167,14 +195,27 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
 - **Recomendación (frontend-ui):** confirmar que cada ruta async tiene
   loading/empty/error coherentes y con copy en español; añadir `error.tsx`
   específicos donde el genérico no dé contexto suficiente.
+- **Verificado (Fase 11b):** feed/channels/messages/users tienen
+  loading+empty+error; `/search` y `/notifications` tienen `EmptyState` con copy
+  en español. Las rutas `/search`, `/notifications` y `/admin/*` heredan el error
+  boundary del grupo `(app)` — el propio informe lo marca como "válido"; el copy
+  genérico es suficiente para esas vistas, no se añaden `error.tsx` específicos
+  para no inflar sin aportar contexto real. Cobertura coherente confirmada.
 
-#### A11Y-10 · Responsive y dark mode — verificación visual — `ui`
+#### A11Y-10 · Responsive y dark mode — verificación visual — `ui` ✅ VERIFICADO (Fase 11b)
 - **Descripción:** dark mode implementado por `prefers-color-scheme` (tokens en
   `globals.css`), sin toggle manual (decisión de diseño). El layout `(app)` tiene
   panel lateral + cabecera y `messages` usa shell con panel oculto en móvil.
 - **Recomendación (frontend-ui):** verificar en viewport móvil real el shell de
   `/messages` (lista vs hilo), el composer y las tablas de admin (overflow);
   revisar contraste en dark de `--muted-foreground` junto con A11Y-02.
+- **Verificado (Fase 11b):** móvil 375px — `/messages` muestra la lista a ancho
+  completo (panel único, el hilo se navega aparte) en dark mode coherente; tabla
+  de `/admin/users` con scroll horizontal contenido (overflow OK, no rompe el
+  layout); landing apila las CTAs y oculta el enlace de login redundante en la
+  cabecera (la home ofrece "Iniciar sesión" explícito). Contraste dark de
+  `--muted-foreground` verificado con A11Y-02 (0 violaciones). Dark mode revisado
+  en landing, feed, messages y admin: consistente.
 
 ---
 
@@ -193,9 +234,12 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
   (Tailwind/next-font), `frame-ancestors 'none'`. Probar que SSE y Better Auth
   siguen funcionando antes de promover a producción.
 
-#### CONS-12 · Warning de consola por Image en landing — `ui`
+#### CONS-12 · Warning de consola por Image en landing — `ui` ✅ RESUELTO (Fase 11b)
 - **Descripción:** único warning de consola: `vercel.svg` con width/height
   modificado sin el otro. Desaparece al rehacer la landing (A11Y/SEO-01).
+- **Aplicado (Fase 11b):** la nueva landing no usa `next/image` con esos SVG; el
+  warning ha desaparecido. Verificado: consola limpia (0 warnings, 0 errores) en
+  landing y en sesión logueada.
 
 #### CLEAN-13 · Assets y rutas vacías heredadas del scaffold — `infra` ✅ (parcial)
 - **Descripción:** `public/` contiene SVGs de la plantilla (`next.svg`,
@@ -206,6 +250,9 @@ seguridad) **ya está aplicado en esta Fase 11a** (ver sección "Arreglos aplica
   (boilerplate) todavía los referencia; **eliminar junto con A11Y/SEO-01**
   (frontend-ui). Las carpetas `.gitkeep` son inocuas (no generan rutas); dejar o
   limpiar según se usen en Fase 12.
+- **Aplicado (Fase 11b):** eliminados `public/next.svg`, `vercel.svg`, `file.svg`,
+  `globe.svg`, `window.svg` (sin referencias tras rehacer la landing). Las
+  carpetas `(marketing)/.gitkeep` y `docs/.gitkeep` se dejan para Fase 12.
 
 #### A11Y-14 · Localización del idioma del documento — `infra` ✅ RESUELTO (verificado)
 - **Descripción:** `<html lang="es">` correcto; el único contenido en inglés era
@@ -239,11 +286,30 @@ de consola**.
 
 ## Trabajo para frontend-ui (Fase 11b) — checklist
 
-1. **A11Y/SEO-01 (Crítico):** rehacer la landing `src/app/page.tsx` con contenido
-   real de CoreLink; eliminar SVGs boilerplate de `public/`.
-2. **A11Y-02 (Alto):** subir el contraste de `--muted-foreground` (claro y dark)
-   en `globals.css` y re-pasar axe hasta 0 violaciones.
-3. **A11Y-08:** verificación manual de foco/teclado en modales, lightbox, menús.
-4. **A11Y-09:** confirmar/añadir estados loading/empty/error por ruta.
-5. **A11Y-10:** verificación responsive + dark mode (especialmente `/messages` y
-   tablas de admin).
+1. [x] **A11Y/SEO-01 (Crítico):** landing `src/app/page.tsx` rehecha (Server
+   Component público, español, identidad CoreLink, responsive, dark, motion);
+   SVGs boilerplate de `public/` eliminados.
+2. [x] **A11Y-02 (Alto):** `--muted-foreground` claro `#64748b` → `#52617a`
+   (5.72:1 AA); dark `#8a96b0` ya AA, mantenido. axe re-pasado: 0 violaciones.
+3. [x] **A11Y-08:** foco/teclado verificado en `confirm-dialog`, `lightbox` y
+   `user-menu` (trampa de foco, Escape, restauración) — ya correctos.
+4. [x] **A11Y-09:** estados loading/empty/error confirmados coherentes por ruta.
+5. [x] **A11Y-10:** responsive (móvil 375px) + dark mode verificados en landing,
+   `/messages`, `/feed` y tablas de admin.
+
+## Arreglos aplicados en la Fase 11b (dominio ui)
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/app/page.tsx` | Landing pública real (sustituye al boilerplate). Server Component, secciones hero/features/oficial/CTA/footer, skip-link, landmarks, jerarquía de headings, español, dark mode, responsive. |
+| `src/components/marketing/guest-cta.tsx` | **Nuevo.** Island "Entrar como invitado" (`signIn.anonymous()` → `/feed`). |
+| `src/components/marketing/reveal.tsx` | **Nuevo.** Wrappers de animación motion (`reducedMotion="user"`) para la landing. |
+| `src/app/globals.css` | A11Y-02: `--muted-foreground` claro → `#52617a` (AA). Dark verificado y comentado. |
+| `public/*.svg` | Eliminados los 5 SVGs boilerplate del scaffold (CLEAN-13). |
+
+**Verificación Fase 11b:** `pnpm check` · `pnpm typecheck` · `pnpm build` en
+**verde**. axe-core 4.10.2 en `/`, `/feed`, `/search`, `/notifications`,
+`/messages`, `/admin/users` (claro y oscuro) → **0 violaciones**. Consola sin
+warnings/errores. Landing verificada desktop+móvil, claro+oscuro, con las 3 CTAs
+(login/registro/invitado) funcionando. Smoke test logueado (user y admin) sin
+regresiones. BD demo re-sembrada para limpiar la sesión anónima de prueba.
