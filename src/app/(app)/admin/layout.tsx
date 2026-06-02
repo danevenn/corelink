@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { ShieldIcon } from "@/components/feed/icons";
 import { getViewer, isAdmin } from "@/server/authz";
+
+export const metadata: Metadata = {
+  title: "Administración",
+  description: "Panel de administración y moderación de CoreLink.",
+};
 
 // PANEL DE ADMINISTRACIÓN (Fase 10b) — SOLO ADMIN.
 //

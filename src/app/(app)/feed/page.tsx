@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/feed/empty-state";
 import { FeedTabs } from "@/components/feed/feed-tabs";
@@ -8,6 +9,11 @@ import { PostComposer } from "@/components/feed/post-composer";
 import { canModerate, getViewer as getAuthViewer } from "@/server/authz";
 import { getChannels, getFeed, getFollowingFeed } from "@/server/posts";
 import { getViewer } from "@/server/viewer";
+
+export const metadata: Metadata = {
+  title: "Feed",
+  description: "Lo último de toda la empresa, en un solo lugar.",
+};
 
 type SearchParams = Promise<{ channel?: string; view?: string }>;
 

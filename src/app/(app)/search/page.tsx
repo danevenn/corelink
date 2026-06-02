@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/feed/empty-state";
 import { SearchIcon, UsersIcon } from "@/components/feed/icons";
@@ -9,6 +10,19 @@ import { searchPosts, searchUsers } from "@/server/search";
 import { getViewer } from "@/server/viewer";
 
 type SearchParams = Promise<{ q?: string }>;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
+  const { q } = await searchParams;
+  const query = (q ?? "").trim();
+  return {
+    title: query ? `Buscar: ${query}` : "Buscar",
+    description: "Busca publicaciones y personas en CoreLink.",
+  };
+}
 
 export default async function SearchPage({
   searchParams,

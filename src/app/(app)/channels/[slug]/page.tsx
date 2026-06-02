@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ChannelTabs } from "@/components/feed/channel-tabs";
 import { EmptyState } from "@/components/feed/empty-state";
@@ -20,6 +21,20 @@ const TYPE_LABEL = {
   DEPARTMENT: "Departamento",
   TOPIC: "Tema",
 } as const;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const channel = await getChannelBySlug(slug);
+  if (!channel) return { title: "Canal no encontrado" };
+  return {
+    title: `#${channel.name}`,
+    description: channel.description ?? `Canal #${channel.name} en CoreLink.`,
+  };
+}
 
 export default async function ChannelPage({
   params,

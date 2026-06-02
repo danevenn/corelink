@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { MessageIcon } from "@/components/feed/icons";
+
+export const metadata: Metadata = {
+  title: "Mensajes",
+  description: "Tus conversaciones privadas y de grupo en CoreLink.",
+};
 
 // Índice de Mensajes (panel derecho vacío en desktop). En móvil este panel está
 // oculto: se ve la lista a pantalla completa (lo gestiona MessagesShell).

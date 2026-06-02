@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StartDirectButton } from "@/components/chat/start-direct-button";
@@ -37,6 +38,20 @@ const ROLE_BADGE = {
     className: "bg-official-soft text-official",
   },
 } as const;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const profile = await getUserProfile(id);
+  if (!profile) return { title: "Perfil no encontrado" };
+  return {
+    title: profile.displayName,
+    description: `Perfil de ${profile.displayName} en CoreLink.`,
+  };
+}
 
 export default async function UserProfilePage({
   params,

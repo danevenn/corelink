@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/feed/empty-state";
@@ -12,6 +13,11 @@ import { getViewer } from "@/server/viewer";
 // cursor (?cursor=), misma semántica de texto/enlaces que el desplegable.
 // La campana de la cabecera marca todo como leído al abrirse; aquí ofrecemos
 // el control explícito y mostramos el estado leído/no leído de cada fila.
+
+export const metadata: Metadata = {
+  title: "Notificaciones",
+  description: "Tu actividad reciente en CoreLink.",
+};
 
 type SearchParams = Promise<{ cursor?: string }>;
 
