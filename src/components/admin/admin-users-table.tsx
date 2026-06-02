@@ -140,7 +140,15 @@ export function AdminUsersTable({
         {status ?? `${page.total} usuarios`}
       </p>
 
-      <div className="overflow-x-auto rounded-3xl border border-border bg-surface shadow-soft">
+      {/* El contenedor con scroll horizontal debe ser enfocable por teclado
+          para desplazarlo sin ratón (axe scrollable-region-focusable). Se usa
+          <section> (landmark con aria-label) en vez de role="region". */}
+      <section
+        aria-label="Tabla de usuarios"
+        className="overflow-x-auto rounded-3xl border border-border bg-surface shadow-soft"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: contenedor scrollable enfocable a propósito por accesibilidad (axe)
+        tabIndex={0}
+      >
         <table className="w-full min-w-[42rem] border-collapse text-sm">
           <caption className="sr-only">
             Lista de usuarios con rol, estado y acciones de administración
@@ -193,7 +201,7 @@ export function AdminUsersTable({
             )}
           </tbody>
         </table>
-      </div>
+      </section>
 
       {/* Paginación */}
       <div className="flex items-center justify-between gap-2 text-sm">
