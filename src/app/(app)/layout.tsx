@@ -8,6 +8,7 @@ import { ChannelNav } from "@/components/feed/channel-nav";
 import { NotificationBell } from "@/components/feed/notification-bell";
 import { UserMenu } from "@/components/feed/user-menu";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getViewer as getAuthViewer, isAdmin } from "@/server/authz";
 import { getTotalUnread } from "@/server/chat";
 import { getUnreadCount } from "@/server/notifications";
@@ -24,6 +25,19 @@ export default async function AppLayout({
 
   if (!session) {
     redirect("/login");
+  }
+
+  // Gate R1: cambio de contraseña forzado en el primer login. Si la cuenta tiene
+  // `mustChangePassword`, bloqueamos TODA la zona protegida y enviamos a la
+  // página de cambio (fuera del grupo (app), así no se auto-redirige). Defensa
+  // en servidor: aunque la UI ocultara algo, aquí no se renderiza nada de la app
+  // hasta que la contraseña se cambie.
+  const account = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { mustChangePassword: true },
+  });
+  if (account?.mustChangePassword) {
+    redirect("/change-password");
   }
 
   const viewer = await getViewer();

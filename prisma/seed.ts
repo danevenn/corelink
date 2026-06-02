@@ -164,9 +164,16 @@ async function reset(): Promise<void> {
  * Crea un usuario vía la API server de Better Auth (hash de credenciales
  * correcto) y devuelve su id. Idempotente: la limpieza previa garantiza que
  * el email no existe todavía.
+ *
+ * R1: usamos `auth.api.createUser` del plugin admin (NO `signUpEmail`), porque
+ * el auto-registro público está desactivado (`disableSignUp`). `createUser` no
+ * pasa por el flujo de sign-up, así que no le afecta. Lo llamamos SIN headers:
+ * es una llamada de confianza del seed, y sin sesión el plugin no exige permisos.
+ * Los usuarios demo quedan con `mustChangePassword=false` (default de columna),
+ * para que puedan loguearse directo sin el gate de cambio forzado.
  */
 async function createAuthUser(spec: DemoUserSpec): Promise<string> {
-  const result = await auth.api.signUpEmail({
+  const result = await auth.api.createUser({
     body: {
       name: spec.name,
       email: spec.email,

@@ -1,14 +1,21 @@
 "use client";
 
-import Link from "next/link";
+// Página de CAMBIO DE CONTRASEÑA (R1) — funcional, SIN pulir.
+//
+// El rediseño visual lo hará frontend-ui (R2). Aquí solo dejamos un formulario
+// accesible y funcional para:
+//   - el cambio FORZADO del primer login (cuentas dadas de alta por la empresa),
+//   - un cambio voluntario.
+// Tras el cambio, el gate de `(app)/layout.tsx` deja pasar (mustChangePassword
+// queda en false) y enviamos al feed.
+
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
-import { signUp } from "@/lib/auth-client";
-import { registerSchema } from "@/lib/validations/auth";
+import { changePasswordSchema } from "@/lib/validations/auth";
+import { changeOwnPassword } from "@/server/account";
 
-export default function RegisterPage() {
+export default function ChangePasswordPage() {
   const router = useRouter();
-
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -19,10 +26,9 @@ export default function RegisterPage() {
     setFieldErrors({});
 
     const formData = new FormData(event.currentTarget);
-    const parsed = registerSchema.safeParse({
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
+    const parsed = changePasswordSchema.safeParse({
+      currentPassword: formData.get("currentPassword"),
+      newPassword: formData.get("newPassword"),
     });
 
     if (!parsed.success) {
@@ -38,15 +44,18 @@ export default function RegisterPage() {
     }
 
     setPending(true);
-    const { error } = await signUp.email({
-      name: parsed.data.name,
-      email: parsed.data.email,
-      password: parsed.data.password,
-    });
+    const result = await changeOwnPassword(parsed.data);
     setPending(false);
 
-    if (error) {
-      setFormError(error.message ?? "No se pudo crear la cuenta.");
+    if (!result.ok) {
+      setFormError(result.error.message);
+      if (result.error.fieldErrors) {
+        const errors: Record<string, string> = {};
+        for (const [key, msgs] of Object.entries(result.error.fieldErrors)) {
+          if (msgs?.[0]) errors[key] = msgs[0];
+        }
+        setFieldErrors(errors);
+      }
       return;
     }
 
@@ -58,10 +67,10 @@ export default function RegisterPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Crear cuenta
+          Cambia tu contraseña
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Únete al espacio de trabajo de tu empresa.
+          Por seguridad, establece una contraseña nueva antes de continuar.
         </p>
       </header>
 
@@ -69,20 +78,20 @@ export default function RegisterPage() {
         <div className="flex flex-col gap-1.5">
           <label
             className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="name"
+            htmlFor="currentPassword"
           >
-            Nombre
+            Contraseña actual
           </label>
           <input
-            autoComplete="name"
+            autoComplete="current-password"
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
-            id="name"
-            name="name"
-            type="text"
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
           />
-          {fieldErrors.name ? (
+          {fieldErrors.currentPassword ? (
             <p className="text-xs text-red-600 dark:text-red-400">
-              {fieldErrors.name}
+              {fieldErrors.currentPassword}
             </p>
           ) : null}
         </div>
@@ -90,41 +99,20 @@ export default function RegisterPage() {
         <div className="flex flex-col gap-1.5">
           <label
             className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="email"
+            htmlFor="newPassword"
           >
-            Correo electrónico
-          </label>
-          <input
-            autoComplete="email"
-            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
-            id="email"
-            name="email"
-            type="email"
-          />
-          {fieldErrors.email ? (
-            <p className="text-xs text-red-600 dark:text-red-400">
-              {fieldErrors.email}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label
-            className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            htmlFor="password"
-          >
-            Contraseña
+            Nueva contraseña
           </label>
           <input
             autoComplete="new-password"
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-400"
-            id="password"
-            name="password"
+            id="newPassword"
+            name="newPassword"
             type="password"
           />
-          {fieldErrors.password ? (
+          {fieldErrors.newPassword ? (
             <p className="text-xs text-red-600 dark:text-red-400">
-              {fieldErrors.password}
+              {fieldErrors.newPassword}
             </p>
           ) : null}
         </div>
@@ -140,19 +128,9 @@ export default function RegisterPage() {
           disabled={pending}
           type="submit"
         >
-          {pending ? "Creando…" : "Crear cuenta"}
+          {pending ? "Guardando…" : "Guardar contraseña"}
         </button>
       </form>
-
-      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-        ¿Ya tienes cuenta?{" "}
-        <Link
-          className="font-medium text-zinc-900 underline dark:text-zinc-50"
-          href="/login"
-        >
-          Inicia sesión
-        </Link>
-      </p>
     </div>
   );
 }

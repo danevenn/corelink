@@ -15,17 +15,19 @@
 // Contrato consistente con el resto del servidor (`post-actions.ts`):
 // `ActionResult<T>` serializable — nunca se lanza para el flujo normal.
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   banUserSchema,
+  createEmployeeSchema,
   listUsersSchema,
   setUserRoleSchema,
   userIdSchema,
 } from "@/lib/validations/admin";
-import { requireAdmin } from "@/server/authz";
+import { isAdmin, requireAdmin, requireModerator } from "@/server/authz";
 import type { ActionResult } from "@/server/post-actions";
 
 const ADMIN_PATH = "/admin";
@@ -65,6 +67,151 @@ function normalizeRole(
 ): "user" | "moderator" | "admin" {
   if (raw === "admin" || raw === "moderator") return raw;
   return "user";
+}
+
+// ── Alta de empleados (R1) ───────────────────────────────────────────────────
+
+export type CreatedEmployee = {
+  userId: string;
+  email: string;
+  /** Contraseña temporal en claro: la UI debe mostrarla UNA sola vez. */
+  temporaryPassword: string;
+};
+
+/**
+ * Genera una contraseña temporal segura (entropía alta, sin caracteres
+ * ambiguos). ~16 chars de un alfabeto de 58 → suficiente para un secreto de un
+ * solo uso que el empleado cambiará en su primer login.
+ */
+function generateTemporaryPassword(): string {
+  // Alfabeto sin 0/O/1/l/I para que sea legible al dictarlo/copiarlo.
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const length = 16;
+  const bytes = randomBytes(length);
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    // `bytes[i]` está acotado por `noUncheckedIndexedAccess`; nunca undefined
+    // porque i < length === bytes.length.
+    out += alphabet[(bytes[i] as number) % alphabet.length];
+  }
+  return out;
+}
+
+/**
+ * Da de alta una cuenta de EMPLEADO. Disponible para STAFF (admin Y moderator),
+ * vía `requireModerator()` (defensa en profundidad: nunca confiamos en la UI).
+ *
+ * Reglas de rol:
+ *   - El rol asignable se valida a `user | moderator` (zod). Crear ADMINS por
+ *     esta vía NO está permitido a nadie: la promoción a admin va por
+ *     `setUserRole` (solo-admin). Si un moderador intentara colar `moderator`,
+ *     se le permite (es staff de su mismo nivel); lo que se prohíbe a todos aquí
+ *     es `admin`, ya cerrado por el schema.
+ *   - Como salvaguarda extra y explícita: un MODERADOR no puede crear otros
+ *     moderadores (evita escalada lateral de privilegios). Solo ADMIN puede dar
+ *     de alta con rol `moderator`. Un moderador queda limitado a crear `user`.
+ *
+ * Implementación: usamos `auth.api.createUser` del plugin admin SIN headers (es
+ * una llamada server-side de confianza, ya autorizada por `requireModerator()`).
+ * Llamarla CON headers exigiría el permiso nativo `user:["create"]` del plugin,
+ * que por config (`adminRoles:["admin"]`) solo tiene `admin` — bloquearía a los
+ * moderadores. `createUser` NO pasa por el flujo de sign-up, así que NO le afecta
+ * `disableSignUp`. Marcamos `mustChangePassword=true` y creamos el Profile.
+ *
+ * Devuelve la contraseña temporal en claro para mostrarla UNA vez. NO se envían
+ * emails (no hay servicio externo en este entorno).
+ */
+export async function createEmployee(
+  input: unknown,
+): Promise<ActionResult<CreatedEmployee>> {
+  const gate = await requireModerator();
+  if (!("id" in gate)) return gate;
+
+  const parsed = createEmployeeSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        message: "Datos no válidos.",
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      },
+    };
+  }
+
+  const { email, name, role, departmentId } = parsed.data;
+
+  // Salvaguarda de escalada: solo un ADMIN puede crear con rol `moderator`.
+  // Un moderador queda limitado a `user`. (Crear `admin` ya está prohibido a
+  // todos por el schema.)
+  if (role === "moderator" && !isAdmin(gate.role)) {
+    return {
+      ok: false,
+      error: {
+        message:
+          "Solo un administrador puede dar de alta empleados con rol de moderador.",
+      },
+    };
+  }
+
+  // Si viene departmentId, debe ser un canal de tipo DEPARTMENT existente.
+  if (departmentId) {
+    const dept = await prisma.channel.findFirst({
+      where: { id: departmentId, type: "DEPARTMENT" },
+      select: { id: true },
+    });
+    if (!dept) {
+      return {
+        ok: false,
+        error: { message: "El departamento indicado no existe." },
+      };
+    }
+  }
+
+  const temporaryPassword =
+    parsed.data.temporaryPassword ?? generateTemporaryPassword();
+
+  try {
+    const created = await auth.api.createUser({
+      body: {
+        email,
+        name,
+        password: temporaryPassword,
+        // El plugin acepta el string de rol tal cual (no valida contra
+        // `adminRoles` si no hay mapa `roles` custom). Ya acotado por zod.
+        role: role as "user",
+      },
+    });
+
+    const userId = created.user.id;
+
+    // `mustChangePassword` NO es un additionalField de Better Auth, así que el
+    // adapter no lo persiste vía `createUser`. Lo marcamos con Prisma directo
+    // (fuente de verdad de la columna), junto con el Profile de dominio.
+    await prisma.user.update({
+      where: { id: userId },
+      data: { mustChangePassword: true },
+    });
+
+    // Perfil de dominio (displayName = name; departamento opcional).
+    await prisma.profile.create({
+      data: {
+        userId,
+        displayName: name,
+        departmentId: departmentId ?? null,
+      },
+    });
+
+    revalidatePath(ADMIN_PATH);
+    return { ok: true, data: { userId, email, temporaryPassword } };
+  } catch (err) {
+    // El plugin lanza USER_ALREADY_EXISTS si el email ya está en uso.
+    const message =
+      err instanceof Error &&
+      /already exists|use another email/i.test(err.message)
+        ? "Ya existe una cuenta con ese correo."
+        : "No se pudo crear el empleado.";
+    return { ok: false, error: { message } };
+  }
 }
 
 /**

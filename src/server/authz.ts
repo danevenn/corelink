@@ -54,10 +54,14 @@ export async function getViewer(): Promise<Viewer | null> {
   if (!session) return null;
 
   const { user } = session;
-  const isAnonymous = user.isAnonymous ?? false;
+  // R1: el plugin `anonymous` se eliminó, así que `isAnonymous` ya no está en el
+  // tipo de la sesión (la columna persiste en BD para datos antiguos). Leemos de
+  // forma defensiva; cualquier sesión nueva es no-anónima.
+  const isAnonymous =
+    (user as { isAnonymous?: boolean | null }).isAnonymous ?? false;
 
   // El plugin admin expone `role` en el user de la sesión; lo tomamos de ahí
-  // y, por seguridad, lo normalizamos. Los anónimos nunca son staff.
+  // y, por seguridad, lo normalizamos. Los anónimos (legado) nunca son staff.
   const sessionRole = (user as { role?: string | null }).role;
   const role = isAnonymous ? "user" : normalizeRole(sessionRole);
 

@@ -1,35 +1,39 @@
 "use client";
 
-// CTA "Entrar como invitado" para la landing pública. Crea una sesión anónima
-// con Better Auth y redirige al feed. Aislado como island: el resto de la
-// landing es Server Component estático.
+// CTA "Probar demo" para la landing pública (R1). Sustituye al antiguo "Entrar
+// como invitado" (plugin anonymous, eliminado): ahora inicia sesión con una
+// cuenta demo REAL sembrada vía la Server Action `demoLogin`, gated por entorno.
+// Si `NEXT_PUBLIC_DEMO_MODE` no está activo, el botón NO se renderiza.
+// Aislado como island: el resto de la landing es Server Component estático.
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signIn } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { demoLogin } from "@/server/demo";
+
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 type Props = {
   className?: string;
   children?: React.ReactNode;
 };
 
-export function GuestCta({
-  className,
-  children = "Entrar como invitado",
-}: Props) {
+export function GuestCta({ className, children = "Probar demo" }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleGuest() {
+  // En el producto real (env off) no existe el acceso demo: no se pinta nada.
+  if (!DEMO_ENABLED) return null;
+
+  async function handleDemo() {
     setError(null);
     setPending(true);
-    const { error: signInError } = await signIn.anonymous();
+    const result = await demoLogin();
 
-    if (signInError) {
+    if (!result.ok) {
       setPending(false);
-      setError(signInError.message ?? "No se pudo entrar como invitado.");
+      setError(result.error.message);
       return;
     }
 
@@ -45,7 +49,7 @@ export function GuestCta({
           className,
         )}
         disabled={pending}
-        onClick={handleGuest}
+        onClick={handleDemo}
         type="button"
       >
         {pending ? "Entrando…" : children}

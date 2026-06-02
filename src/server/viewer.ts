@@ -20,7 +20,11 @@ export async function getViewer(): Promise<Viewer | null> {
   if (!session) return null;
 
   const { user } = session;
-  const isAnonymous = user.isAnonymous ?? false;
+  // R1: el plugin `anonymous` se eliminó y `isAnonymous` ya no está en el tipo
+  // de la sesión (la columna persiste en BD para datos antiguos). Lectura
+  // defensiva; las sesiones nuevas son siempre no-anónimas.
+  const isAnonymous =
+    (user as { isAnonymous?: boolean | null }).isAnonymous ?? false;
 
   const profile = await prisma.profile.findUnique({
     where: { userId: user.id },

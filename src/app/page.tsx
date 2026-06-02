@@ -108,16 +108,10 @@ function SiteHeader() {
         </Link>
         <nav aria-label="Acceso" className="flex items-center gap-2">
           <Link
-            className="hidden rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-surface-muted hover:text-foreground sm:inline-flex"
+            className="inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
             href="/login"
           >
             Iniciar sesión
-          </Link>
-          <Link
-            className="inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-            href="/register"
-          >
-            Crear cuenta
           </Link>
         </nav>
       </div>
@@ -161,22 +155,11 @@ function Hero() {
         >
           <Link
             className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-6 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-            href="/register"
-          >
-            Crear cuenta gratis
-          </Link>
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:bg-surface-muted sm:hidden"
             href="/login"
           >
             Iniciar sesión
           </Link>
           <GuestCta />
-        </Reveal>
-        <Reveal delay={0.2}>
-          <p className="text-xs text-muted-foreground">
-            ¿Solo quieres echar un vistazo? Entra como invitado, sin registro.
-          </p>
         </Reveal>
       </div>
     </section>
@@ -294,18 +277,11 @@ function FinalCta() {
           Empieza a hablar de lo importante
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-pretty text-muted-foreground">
-          Crea tu cuenta en segundos o entra como invitado para explorar la demo
-          con datos de ejemplo.
+          Accede a tu espacio de trabajo. Las cuentas las gestiona tu empresa.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             className="inline-flex h-11 items-center justify-center rounded-lg bg-brand px-6 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-            href="/register"
-          >
-            Crear cuenta
-          </Link>
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-border bg-surface px-6 text-sm font-medium text-foreground transition hover:bg-surface-muted"
             href="/login"
           >
             Iniciar sesión

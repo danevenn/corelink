@@ -29,6 +29,11 @@ model User {
   banned        Boolean?     @default(false)
   banReason     String?
   banExpires    DateTime?
+  // R1: cambio de contraseña forzado en el primer login. Las cuentas creadas
+  // por la empresa (alta de empleados) nacen con `true` y una contraseña
+  // temporal; el gate de la zona protegida bloquea hasta que el empleado la
+  // cambie (Server Action `changeOwnPassword`, que lo pone a `false`).
+  mustChangePassword Boolean? @default(false)
   sessions      Session[]
   accounts      Account[]
   members       Member[]

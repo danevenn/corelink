@@ -47,6 +47,41 @@ export const banUserSchema = z.object({
 
 export const userIdSchema = z.object({ userId });
 
+// ── Alta de empleados (R1) ───────────────────────────────────────────────────
+//
+// Rol asignable en el alta: SOLO `user` o `moderator`. Crear administradores NO
+// se hace por esta vía (un moderador no debe poder crear admins, y la promoción
+// a admin tiene su propio camino: `setUserRole`, solo-admin). La regla de "quién
+// puede asignar qué" se re-aplica en la action `createEmployee` (defensa en
+// profundidad); aquí solo cerramos el conjunto de roles válidos de FORMA.
+export const employeeRoleSchema = z.enum(["user", "moderator"], {
+  message: "Rol de empleado no válido.",
+});
+
+const EMPLOYEE_NAME_MIN = 2;
+const EMPLOYEE_NAME_MAX = 80;
+const TEMP_PASSWORD_MIN = 12;
+const TEMP_PASSWORD_MAX = 128;
+
+export const createEmployeeSchema = z.object({
+  email: z.email("Introduce un correo válido."),
+  name: z
+    .string()
+    .trim()
+    .min(EMPLOYEE_NAME_MIN, "El nombre debe tener al menos 2 caracteres.")
+    .max(EMPLOYEE_NAME_MAX, "El nombre es demasiado largo."),
+  // Por defecto, menor privilegio.
+  role: employeeRoleSchema.default("user"),
+  // Departamento opcional: es un Channel de tipo DEPARTMENT (cuid).
+  departmentId: channelId.optional(),
+  // Contraseña temporal opcional: si no se pasa, la action genera una segura.
+  temporaryPassword: z
+    .string()
+    .min(TEMP_PASSWORD_MIN, "La contraseña temporal es demasiado corta.")
+    .max(TEMP_PASSWORD_MAX, "La contraseña temporal es demasiado larga.")
+    .optional(),
+});
+
 export const listUsersSchema = z.object({
   search: z.string().trim().max(120).optional(),
   // Paginación por offset (la API del plugin admin usa limit/offset).
@@ -112,6 +147,7 @@ export const updateChannelSchema = z.object({
 
 export const channelIdSchema = z.object({ id: channelId });
 
+export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 export type SetUserRoleInput = z.infer<typeof setUserRoleSchema>;
 export type BanUserInput = z.infer<typeof banUserSchema>;
 export type ListUsersInput = z.infer<typeof listUsersSchema>;

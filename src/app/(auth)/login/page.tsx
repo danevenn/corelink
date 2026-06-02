@@ -1,10 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useState } from "react";
 import { signIn } from "@/lib/auth-client";
 import { loginSchema } from "@/lib/validations/auth";
+import { demoLogin } from "@/server/demo";
+
+// R1: el acceso demo se muestra solo si el entorno lo activa. `NEXT_PUBLIC_*`
+// está disponible en el cliente; la Server Action `demoLogin` lo revalida.
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
 // useSearchParams() exige un límite de Suspense para el prerender estático.
 export default function LoginPage() {
@@ -132,34 +136,27 @@ function LoginForm() {
         </button>
       </form>
 
-      <GuestButton />
-
-      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-        ¿No tienes cuenta?{" "}
-        <Link
-          className="font-medium text-zinc-900 underline dark:text-zinc-50"
-          href="/register"
-        >
-          Regístrate
-        </Link>
-      </p>
+      {DEMO_ENABLED ? <DemoButton /> : null}
     </div>
   );
 }
 
-function GuestButton() {
+// R1: sustituye al antiguo "Entrar como invitado" (anonymous). Inicia sesión con
+// una cuenta demo REAL sembrada vía la Server Action `demoLogin` (gated por
+// entorno). Solo se renderiza si `NEXT_PUBLIC_DEMO_MODE === "true"`.
+function DemoButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleGuest() {
+  async function handleDemo() {
     setError(null);
     setPending(true);
-    const { error: signInError } = await signIn.anonymous();
+    const result = await demoLogin();
     setPending(false);
 
-    if (signInError) {
-      setError(signInError.message ?? "No se pudo entrar como invitado.");
+    if (!result.ok) {
+      setError(result.error.message);
       return;
     }
 
@@ -176,10 +173,10 @@ function GuestButton() {
       <button
         className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
         disabled={pending}
-        onClick={handleGuest}
+        onClick={handleDemo}
         type="button"
       >
-        {pending ? "Entrando…" : "Entrar como invitado"}
+        {pending ? "Entrando…" : "Probar demo"}
       </button>
       {error ? (
         <p className="text-xs text-red-600 dark:text-red-400" role="alert">
