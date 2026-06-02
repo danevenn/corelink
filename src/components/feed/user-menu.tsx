@@ -58,6 +58,7 @@ export function UserMenu({
       <button
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={`Cuenta de ${displayName}`}
         className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-surface-muted"
         onClick={() => setOpen((v) => !v)}
         type="button"
