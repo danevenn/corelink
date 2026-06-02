@@ -25,10 +25,11 @@ type Props = {
   messages: ReactNode;
   /**
    * ¿El viewer es admin? DECIDIDO EN SERVIDOR (`isAdmin` en el layout). Solo
-   * controla la visibilidad del enlace "Admin"; el panel se re-protege en su
+   * controla la visibilidad del enlace "Gestión"; el panel se re-protege en su
    * propio layout server (nunca confiamos solo en ocultar en cliente).
+   * Es STAFF (admin || moderator): decidido en servidor con `canModerate`.
    */
-  isAdmin?: boolean;
+  isStaff?: boolean;
   children: ReactNode;
 };
 
@@ -37,7 +38,7 @@ export function AppShell({
   user,
   notifications,
   messages,
-  isAdmin = false,
+  isStaff = false,
   children,
 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -106,12 +107,12 @@ export function AppShell({
             >
               <SearchIcon className="size-5" />
             </Link>
-            {isAdmin ? (
+            {isStaff ? (
               <Link
                 aria-current={
                   pathname.startsWith("/admin") ? "page" : undefined
                 }
-                aria-label="Panel de administración"
+                aria-label="Panel de gestión"
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition",
                   pathname.startsWith("/admin")
@@ -121,7 +122,7 @@ export function AppShell({
                 href="/admin"
               >
                 <ShieldIcon className="size-5" />
-                <span className="hidden sm:inline">Admin</span>
+                <span className="hidden sm:inline">Gestión</span>
               </Link>
             ) : null}
             {messages}

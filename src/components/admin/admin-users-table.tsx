@@ -1,12 +1,17 @@
 "use client";
 
-// Tabla de gestión de usuarios (Fase 10b) — SOLO ADMIN (gate en servidor).
+// Tabla de gestión de usuarios (Fase 10b · ajuste R-staff) — STAFF, role-aware.
 //
 // Consume las Server Actions de `src/server/admin/users.ts`:
-//   listUsers (búsqueda + paginación), setUserRole, banUser, unbanUser,
-//   deleteUser. Toda action re-verifica el rol en servidor; aquí solo pintamos
-//   y reflejamos sus resultados/errores. UI optimista donde es seguro (rol);
-//   las acciones destructivas (ban/eliminar) pasan SIEMPRE por confirmación.
+//   listUsers (lectura para staff: búsqueda + paginación), setUserRole, banUser,
+//   unbanUser, deleteUser. Las mutaciones son solo-ADMIN: re-verifican el rol en
+//   servidor (defensa en profundidad); aquí solo pintamos y reflejamos sus
+//   resultados/errores. UI optimista donde es seguro (rol); las acciones
+//   destructivas (ban/eliminar) pasan SIEMPRE por confirmación.
+//
+// ROLE-AWARE (`viewerIsAdmin`): para el MODERADOR la tabla es de SOLO LECTURA
+// (rol como etiqueta, sin selector ni acciones de ban/rol/eliminar), pero SÍ
+// puede "Dar de alta empleado". Para el ADMIN se muestran todos los controles.
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { CreateEmployeeDialog } from "@/components/admin/create-employee-dialog";
@@ -155,7 +160,11 @@ export function AdminUsersTable({
                 Posts
               </th>
               <th className="px-4 py-2.5 text-right" scope="col">
-                Acciones
+                {viewerIsAdmin ? (
+                  "Acciones"
+                ) : (
+                  <span className="sr-only">Acciones</span>
+                )}
               </th>
             </tr>
           </thead>
@@ -178,6 +187,7 @@ export function AdminUsersTable({
                   onRemove={removeRow}
                   onStatus={setStatus}
                   user={u}
+                  viewerIsAdmin={viewerIsAdmin}
                 />
               ))
             )}
@@ -216,12 +226,15 @@ export function AdminUsersTable({
 function UserRow({
   user,
   currentUserId,
+  viewerIsAdmin,
   onPatch,
   onRemove,
   onStatus,
 }: {
   user: AdminUserRow;
   currentUserId: string;
+  /** ¿El viewer es admin? Si no (moderador), la fila es de solo lectura. */
+  viewerIsAdmin: boolean;
   onPatch: (id: string, patch: Partial<AdminUserRow>) => void;
   onRemove: (id: string) => void;
   onStatus: (msg: string) => void;
@@ -336,22 +349,31 @@ function UserRow({
         </div>
       </td>
 
-      {/* Rol */}
+      {/* Rol: selector editable solo para admin; etiqueta de solo lectura para
+          el moderador (las mutaciones de rol son solo-admin en backend). */}
       <td className="px-4 py-3">
-        <label className="sr-only" htmlFor={roleSelectId}>
-          Rol de {user.displayName}
-        </label>
-        <select
-          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none transition focus:border-brand disabled:opacity-50"
-          disabled={pending}
-          id={roleSelectId}
-          onChange={(e) => changeRole(e.target.value as Role)}
-          value={user.role}
-        >
-          <option value="user">Usuario</option>
-          <option value="moderator">Moderador</option>
-          <option value="admin">Admin</option>
-        </select>
+        {viewerIsAdmin ? (
+          <>
+            <label className="sr-only" htmlFor={roleSelectId}>
+              Rol de {user.displayName}
+            </label>
+            <select
+              className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground outline-none transition focus:border-brand disabled:opacity-50"
+              disabled={pending}
+              id={roleSelectId}
+              onChange={(e) => changeRole(e.target.value as Role)}
+              value={user.role}
+            >
+              <option value="user">Usuario</option>
+              <option value="moderator">Moderador</option>
+              <option value="admin">Admin</option>
+            </select>
+          </>
+        ) : (
+          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-2.5 py-1 text-xs font-medium text-foreground">
+            {ROLE_LABEL[user.role]}
+          </span>
+        )}
       </td>
 
       {/* Estado */}
@@ -376,111 +398,124 @@ function UserRow({
         {user.postCount}
       </td>
 
-      {/* Acciones */}
+      {/* Acciones (solo admin: las mutaciones son solo-admin en backend). El
+          moderador ve una celda vacía — su única acción es "Dar de alta
+          empleado" en la cabecera de la tabla. */}
       <td className="px-4 py-3">
-        <div className="flex items-center justify-end gap-1.5">
-          {user.banned ? (
-            <button
-              className="rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-50"
-              disabled={pending}
-              onClick={unban}
-              type="button"
-            >
-              Desbanear
-            </button>
-          ) : (
-            <button
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-              disabled={pending}
-              onClick={() => {
-                setDialogError(null);
-                setDialog("ban");
-              }}
-              title="Banear (revoca sus sesiones activas)"
-              type="button"
-            >
-              <BanIcon className="size-3.5" />
-              Banear
-            </button>
-          )}
-          <button
-            className="inline-flex items-center gap-1 rounded-md border border-danger/40 px-2 py-1 text-xs font-medium text-danger transition hover:bg-danger-soft disabled:opacity-50"
-            disabled={pending}
-            onClick={() => {
-              setDialogError(null);
-              setDialog("delete");
-            }}
-            type="button"
+        {!viewerIsAdmin ? (
+          <span
+            aria-hidden="true"
+            className="block text-right text-muted-foreground"
           >
-            <TrashIcon className="size-3.5" />
-            Eliminar
-          </button>
-        </div>
+            —
+          </span>
+        ) : (
+          <>
+            <div className="flex items-center justify-end gap-1.5">
+              {user.banned ? (
+                <button
+                  className="rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-50"
+                  disabled={pending}
+                  onClick={unban}
+                  type="button"
+                >
+                  Desbanear
+                </button>
+              ) : (
+                <button
+                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                  disabled={pending}
+                  onClick={() => {
+                    setDialogError(null);
+                    setDialog("ban");
+                  }}
+                  title="Banear (revoca sus sesiones activas)"
+                  type="button"
+                >
+                  <BanIcon className="size-3.5" />
+                  Banear
+                </button>
+              )}
+              <button
+                className="inline-flex items-center gap-1 rounded-md border border-danger/40 px-2 py-1 text-xs font-medium text-danger transition hover:bg-danger-soft disabled:opacity-50"
+                disabled={pending}
+                onClick={() => {
+                  setDialogError(null);
+                  setDialog("delete");
+                }}
+                type="button"
+              >
+                <TrashIcon className="size-3.5" />
+                Eliminar
+              </button>
+            </div>
 
-        {/* Diálogo: banear (con motivo + caducidad opcionales). Se renderiza
+            {/* Diálogo: banear (con motivo + caducidad opcionales). Se renderiza
             con position:fixed, escapa del flujo de la celda. */}
-        <ConfirmDialog
-          confirmLabel="Banear usuario"
-          description={
-            <>
-              Vas a banear a <strong>{user.displayName}</strong>. Better Auth
-              revocará todas sus sesiones activas de inmediato.
-            </>
-          }
-          destructive
-          error={dialogError}
-          onCancel={() => setDialog(null)}
-          onConfirm={confirmBan}
-          open={dialog === "ban"}
-          pending={pending}
-          title="Banear usuario"
-        >
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
-              Motivo (opcional)
-              <input
-                className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-normal text-foreground outline-none focus:border-brand"
-                maxLength={500}
-                onChange={(e) => setBanReason(e.target.value)}
-                placeholder="Spam, conducta inapropiada…"
-                type="text"
-                value={banReason}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
-              Caducidad en días (vacío = permanente)
-              <input
-                className="w-32 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-normal text-foreground outline-none focus:border-brand"
-                inputMode="numeric"
-                min={1}
-                onChange={(e) => setBanDays(e.target.value)}
-                placeholder="∞"
-                type="number"
-                value={banDays}
-              />
-            </label>
-          </div>
-        </ConfirmDialog>
+            <ConfirmDialog
+              confirmLabel="Banear usuario"
+              description={
+                <>
+                  Vas a banear a <strong>{user.displayName}</strong>. Better
+                  Auth revocará todas sus sesiones activas de inmediato.
+                </>
+              }
+              destructive
+              error={dialogError}
+              onCancel={() => setDialog(null)}
+              onConfirm={confirmBan}
+              open={dialog === "ban"}
+              pending={pending}
+              title="Banear usuario"
+            >
+              <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
+                  Motivo (opcional)
+                  <input
+                    className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-normal text-foreground outline-none focus:border-brand"
+                    maxLength={500}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    placeholder="Spam, conducta inapropiada…"
+                    type="text"
+                    value={banReason}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
+                  Caducidad en días (vacío = permanente)
+                  <input
+                    className="w-32 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-normal text-foreground outline-none focus:border-brand"
+                    inputMode="numeric"
+                    min={1}
+                    onChange={(e) => setBanDays(e.target.value)}
+                    placeholder="∞"
+                    type="number"
+                    value={banDays}
+                  />
+                </label>
+              </div>
+            </ConfirmDialog>
 
-        {/* Diálogo: eliminar (confirmación fuerte, cascade) */}
-        <ConfirmDialog
-          confirmLabel="Eliminar definitivamente"
-          description={
-            <>
-              Vas a <strong>eliminar la cuenta</strong> de{" "}
-              <strong>{user.displayName}</strong> y TODO su contenido (posts,
-              respuestas, reacciones, mensajes…). Esta acción es{" "}
-              <strong>irreversible</strong> y se aplica en cascada.
-            </>
-          }
-          destructive
-          error={dialogError}
-          onCancel={() => setDialog(null)}
-          onConfirm={confirmDelete}
-          open={dialog === "delete"}
-          pending={pending}
-          title="Eliminar cuenta y contenido"
-        />
+            {/* Diálogo: eliminar (confirmación fuerte, cascade) */}
+            <ConfirmDialog
+              confirmLabel="Eliminar definitivamente"
+              description={
+                <>
+                  Vas a <strong>eliminar la cuenta</strong> de{" "}
+                  <strong>{user.displayName}</strong> y TODO su contenido
+                  (posts, respuestas, reacciones, mensajes…). Esta acción es{" "}
+                  <strong>irreversible</strong> y se aplica en cascada.
+                </>
+              }
+              destructive
+              error={dialogError}
+              onCancel={() => setDialog(null)}
+              onConfirm={confirmDelete}
+              open={dialog === "delete"}
+              pending={pending}
+              title="Eliminar cuenta y contenido"
+            />
+          </>
+        )}
       </td>
     </tr>
   );

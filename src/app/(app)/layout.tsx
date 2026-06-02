@@ -9,7 +9,7 @@ import { NotificationBell } from "@/components/feed/notification-bell";
 import { UserMenu } from "@/components/feed/user-menu";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getViewer as getAuthViewer, isAdmin } from "@/server/authz";
+import { canModerate, getViewer as getAuthViewer } from "@/server/authz";
 import { getTotalUnread } from "@/server/chat";
 import { getUnreadCount } from "@/server/notifications";
 import { getChannels } from "@/server/posts";
@@ -45,10 +45,11 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  // Rol del viewer (servidor): decide si se muestra el enlace "Admin". El panel
-  // se re-protege en su propio layout; aquí solo evitamos mostrar de más.
+  // Rol del viewer (servidor): decide si se muestra el enlace "Gestión". El
+  // panel es accesible a STAFF (admin || moderator) y se re-protege en su propio
+  // layout; aquí solo evitamos mostrar de más.
   const authViewer = await getAuthViewer();
-  const viewerIsAdmin = authViewer ? isAdmin(authViewer.role) : false;
+  const viewerIsStaff = authViewer ? canModerate(authViewer.role) : false;
 
   const unread = await getUnreadCount();
   const unreadMessages = await getTotalUnread();
@@ -58,7 +59,7 @@ export default async function AppLayout({
     // (Fase 8b) reutilizan la MISMA conexión sin duplicarla.
     <EventStreamProvider>
       <AppShell
-        isAdmin={viewerIsAdmin}
+        isStaff={viewerIsStaff}
         messages={<MessagesNavLink initialUnread={unreadMessages} />}
         notifications={<NotificationBell initialUnread={unread} />}
         sidebar={

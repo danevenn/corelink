@@ -3,10 +3,10 @@ import { listRecentPosts } from "@/server/admin/moderation";
 import { getViewer } from "@/server/authz";
 
 // /admin/moderation — cola de contenido reciente (raíces + respuestas).
-// El PANEL es admin-only (gate en el layout). La lectura `listRecentPosts` es
-// staff-only en servidor; aquí ya estamos garantizados como admin. Los
-// moderators NO entran al panel, pero pueden moderar desde el feed normal
-// (botón "Moderar" en cada PostCard ajeno).
+// El PANEL es staff (gate de staff en el layout) y esta sección es accesible a
+// STAFF (admin || moderator). La lectura `listRecentPosts` es staff-only en
+// servidor (defensa en profundidad). Los moderadores también pueden moderar
+// desde el feed normal (botón "Moderar" en cada PostCard ajeno).
 export default async function AdminModerationPage() {
   const viewer = await getViewer();
   const page = await listRecentPosts({ limit: 20 });

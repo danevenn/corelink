@@ -2,26 +2,30 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { ShieldIcon } from "@/components/feed/icons";
-import { getViewer, isAdmin } from "@/server/authz";
+import { canModerate, getViewer, isAdmin } from "@/server/authz";
 
 export const metadata: Metadata = {
-  title: "Administración",
-  description: "Panel de administración y moderación de CoreLink.",
+  title: "Gestión",
+  description: "Panel de gestión y moderación de CoreLink.",
 };
 
-// PANEL DE ADMINISTRACIÓN (Fase 10b) — SOLO ADMIN.
+// PANEL DE GESTIÓN (Fase 10b · ajuste R-staff) — STAFF (admin || moderator).
 //
-// Gate en SERVIDOR: se decide aquí con `getViewer()`/`isAdmin()`. Cualquier
-// viewer que no sea admin (incluido `moderator`) recibe `notFound()`: no se
-// filtra ni la existencia del panel. Las Server Actions de admin re-verifican
-// el rol de nuevo (defensa en profundidad), pero nunca renderizamos UI de más.
+// Gate en SERVIDOR: se decide aquí con `getViewer()`/`canModerate()`. Cualquier
+// viewer que no sea staff recibe `notFound()`: no se filtra ni la existencia del
+// panel. El panel es ROLE-AWARE: cada rol ve solo lo suyo (el admin lo ve todo;
+// el moderador ve Usuarios en solo-lectura + alta de empleados y Moderación, NO
+// Canales). Las Server Actions sensibles re-verifican el rol con `requireAdmin`
+// (defensa en profundidad), pero aquí ya evitamos renderizar UI de más.
 export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const viewer = await getViewer();
-  if (!viewer || !isAdmin(viewer.role)) {
+  if (!viewer || !canModerate(viewer.role)) {
     notFound();
   }
+
+  const viewerIsAdmin = isAdmin(viewer.role);
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,16 +36,17 @@ export default async function AdminLayout({
           </span>
           <div className="flex flex-col gap-1">
             <h1 className="text-xl font-bold tracking-tight text-foreground">
-              Administración
+              Gestión
             </h1>
             <p className="text-sm text-muted-foreground">
-              Gestión de usuarios, canales y moderación de contenido. Acceso
-              restringido a administradores.
+              {viewerIsAdmin
+                ? "Gestión de usuarios, canales y moderación de contenido. Acceso restringido al equipo."
+                : "Alta de empleados y moderación de contenido. Acceso restringido al equipo."}
             </p>
           </div>
         </div>
 
-        <AdminTabs />
+        <AdminTabs viewerIsAdmin={viewerIsAdmin} />
       </header>
 
       <div>{children}</div>

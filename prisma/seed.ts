@@ -154,10 +154,13 @@ async function reset(): Promise<void> {
   await prisma.profile.deleteMany();
   await prisma.channel.deleteMany();
 
-  // Usuarios demo creados por Better Auth (account/session caen por cascade).
-  await prisma.user.deleteMany({
-    where: { email: { in: DEMO_USERS.map((u) => u.email) } },
-  });
+  // Usuarios: borramos TODOS (account/session caen por cascade). El seed
+  // re-crea a continuación SOLO la lista demo, así que un borrado total deja la
+  // tabla `user` exactamente con los usuarios demo correctos. Esto, además de
+  // permitir re-crear los demo sin chocar por email duplicado, elimina cualquier
+  // RESIDUO — p. ej. usuarios `Anonymous` (`temp@…`) que dejó el antiguo acceso
+  // invitado (plugin `anonymous`, ya eliminado en R1) — sin dejar huérfanos.
+  await prisma.user.deleteMany();
 }
 
 /**

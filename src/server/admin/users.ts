@@ -217,17 +217,26 @@ export async function createEmployee(
 /**
  * Lista usuarios con rol, estado de baneo, perfil (displayName/avatar) y conteo
  * de posts, paginados por página/offset y con búsqueda por nombre o email.
- * Solo ADMIN.
  *
- * Estrategia: usamos `auth.api.listUsers` (plugin admin) para la paginación y
- * la búsqueda nativas (limit/offset/searchValue), y enriquecemos con Profile +
- * conteo de posts vía una ÚNICA consulta Prisma sobre los ids de la página
- * (anti-N+1: un `findMany` + un `groupBy`, no por-fila).
+ * LECTURA para STAFF (`requireModerator` = admin || moderator): el panel es
+ * role-aware y el moderador necesita ver la lista (en solo-lectura) para dar de
+ * alta empleados. Las MUTACIONES (setUserRole/banUser/unbanUser/deleteUser)
+ * siguen siendo solo-ADMIN (`requireAdmin`), así que relajar solo la lectura no
+ * abre ninguna acción sensible.
+ *
+ * Estrategia: leemos directamente de la tabla `user` con Prisma (paginación +
+ * búsqueda), NO vía `auth.api.listUsers`. Ese endpoint del plugin admin exige el
+ * permiso nativo `user:["list"]`, reservado por config a `admin`
+ * (`adminRoles:["admin"]`): con la sesión de un moderador devuelve UNAUTHORIZED,
+ * y sin headers también (requiere sesión). La autorización de esta acción ya la
+ * cubre `requireModerator()`; Prisma sobre la tabla `user` es la fuente de verdad
+ * de los mismos campos. Enriquecemos con Profile + conteo de posts en consultas
+ * acotadas a los ids de la página (anti-N+1: `findMany` + `groupBy`, no por-fila).
  */
 export async function listUsers(
   input?: unknown,
 ): Promise<ActionResult<AdminUsersPage>> {
-  const gate = await requireAdmin();
+  const gate = await requireModerator();
   if (!("id" in gate)) return gate;
 
   const parsed = listUsersSchema.safeParse(input ?? {});
@@ -247,24 +256,38 @@ export async function listUsers(
   const search = parsed.data.search;
 
   try {
-    const result = await auth.api.listUsers({
-      headers: await headers(),
-      query: {
-        limit,
-        offset,
-        sortBy: "createdAt",
-        sortDirection: "desc",
-        ...(search
-          ? {
-              searchValue: search,
-              searchField: "name",
-              searchOperator: "contains",
-            }
-          : {}),
-      },
-    });
+    // Búsqueda por nombre O email (insensible a mayúsculas), igual que el panel
+    // ofrecía con el plugin pero sin su gate admin-only.
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
 
-    const baseUsers = result.users ?? [];
+    const [baseUsers, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          banned: true,
+          banReason: true,
+          banExpires: true,
+          isAnonymous: true,
+          createdAt: true,
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
     const ids = baseUsers.map((u) => u.id);
 
     // Enriquecimiento en 2 queries acotadas a los ids de la página.
@@ -287,26 +310,21 @@ export async function listUsers(
 
     const users: AdminUserRow[] = baseUsers.map((u) => {
       const profile = profileByUser.get(u.id);
-      const banExpiresRaw = (u as { banExpires?: Date | string | null })
-        .banExpires;
       return {
         id: u.id,
         email: u.email,
         name: u.name,
         displayName: profile?.displayName ?? u.name ?? u.email,
         avatarUrl: profile?.avatarUrl ?? null,
-        role: normalizeRole((u as { role?: string | null }).role),
-        banned: (u as { banned?: boolean | null }).banned ?? false,
-        banReason: (u as { banReason?: string | null }).banReason ?? null,
-        banExpires: banExpiresRaw ? new Date(banExpiresRaw) : null,
-        isAnonymous:
-          (u as { isAnonymous?: boolean | null }).isAnonymous ?? false,
-        createdAt: new Date(u.createdAt),
+        role: normalizeRole(u.role),
+        banned: u.banned ?? false,
+        banReason: u.banReason ?? null,
+        banExpires: u.banExpires ?? null,
+        isAnonymous: u.isAnonymous ?? false,
+        createdAt: u.createdAt,
         postCount: countByUser.get(u.id) ?? 0,
       };
     });
-
-    const total = result.total ?? users.length;
 
     return {
       ok: true,
