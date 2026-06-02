@@ -5,6 +5,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
 import { markNotificationsRead } from "@/server/notification-actions";
 
 type Props = {
@@ -26,13 +27,15 @@ export function MarkAllReadButton({ hasUnread }: Props) {
   }
 
   return (
-    <button
-      className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-50"
+    <Button
+      className="rounded-full"
       disabled={done || pending}
       onClick={handleClick}
+      size="sm"
       type="button"
+      variant="outline"
     >
       {pending ? "Marcando…" : "Marcar todas como leídas"}
-    </button>
+    </Button>
   );
 }

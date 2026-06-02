@@ -73,7 +73,7 @@ export function AttachmentGallery({
       {count > 0 ? (
         <div
           className={cn(
-            "grid gap-1.5 overflow-hidden rounded-xl",
+            "grid gap-1.5 overflow-hidden rounded-2xl",
             gridClass,
             variant === "chat" && "max-w-[16rem]",
           )}
@@ -85,7 +85,7 @@ export function AttachmentGallery({
               <button
                 aria-label={`Ampliar imagen adjunta de ${authorName}`}
                 className={cn(
-                  "group relative block overflow-hidden rounded-lg bg-surface-muted focus:outline-none focus:ring-2 focus:ring-brand",
+                  "group relative block overflow-hidden rounded-2xl bg-surface-muted focus:outline-none focus:ring-2 focus:ring-brand",
                   count === 1 ? "aspect-auto" : "aspect-square",
                   spanFull && "col-span-2",
                 )}
@@ -125,7 +125,7 @@ export function AttachmentGallery({
               <li key={pdf.id}>
                 <a
                   className={cn(
-                    "inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-brand",
+                    "inline-flex max-w-full items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-foreground transition hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-brand",
                     variant === "chat" && "max-w-[16rem]",
                   )}
                   download

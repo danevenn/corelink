@@ -6,6 +6,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { MessageIcon } from "@/components/feed/icons";
+import { Button } from "@/components/ui/button";
 import { getOrCreateDirectConversation } from "@/server/chat-actions";
 
 type Props = {
@@ -37,18 +38,20 @@ export function StartDirectButton({ targetUserId, targetName, isSelf }: Props) {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
+      <Button
         aria-label={`Enviar un mensaje a ${targetName}`}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-surface-muted disabled:opacity-60"
+        className="rounded-full"
         disabled={pending}
         onClick={open}
+        size="sm"
         type="button"
+        variant="outline"
       >
         <MessageIcon className="size-4" />
         {pending ? "Abriendo…" : "Enviar mensaje"}
-      </button>
+      </Button>
       {error ? (
-        <span className="text-xs text-rose-500" role="alert">
+        <span className="text-xs text-danger" role="alert">
           {error}
         </span>
       ) : null}

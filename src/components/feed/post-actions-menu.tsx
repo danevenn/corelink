@@ -5,6 +5,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { editPostSchema } from "@/lib/validations/post";
 import { deletePost, editPost } from "@/server/post-actions";
@@ -73,8 +75,8 @@ export function PostActionsMenu({ postId, initialContent }: Props) {
         <label className="sr-only" htmlFor={fieldId}>
           Editar contenido del post
         </label>
-        <textarea
-          className="min-h-24 w-full resize-y rounded-lg border border-border bg-surface p-3 text-sm text-foreground outline-none focus:border-brand"
+        <Textarea
+          className="min-h-24 resize-y rounded-2xl leading-relaxed"
           disabled={pending}
           id={fieldId}
           onChange={(e) => setContent(e.target.value)}
@@ -82,31 +84,32 @@ export function PostActionsMenu({ postId, initialContent }: Props) {
           value={content}
         />
         {error ? (
-          <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+          <p className="text-xs text-danger" role="alert">
             {error}
           </p>
         ) : null}
         <div className="flex items-center gap-2">
-          <button
-            className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground transition hover:opacity-90 disabled:opacity-50"
+          <Button
             disabled={pending}
             onClick={submitEdit}
+            size="sm"
             type="button"
           >
             {pending ? "Guardando…" : "Guardar cambios"}
-          </button>
-          <button
-            className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted"
+          </Button>
+          <Button
             disabled={pending}
             onClick={() => {
               setMode("idle");
               setContent(initialContent);
               setError(null);
             }}
+            size="sm"
             type="button"
+            variant="ghost"
           >
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -115,36 +118,38 @@ export function PostActionsMenu({ postId, initialContent }: Props) {
   if (mode === "confirmDelete") {
     return (
       <div
-        className="mt-2 flex flex-col gap-2 rounded-lg border border-rose-300 bg-rose-50 p-3 dark:border-rose-900 dark:bg-rose-950/40"
+        className="mt-2 flex flex-col gap-2 rounded-2xl border border-danger/40 bg-danger-soft p-3"
         role="alertdialog"
         aria-label="Confirmar borrado"
       >
-        <p className="text-xs text-rose-700 dark:text-rose-300">
+        <p className="text-xs text-danger">
           ¿Seguro que quieres borrar este post? Esta acción no se puede deshacer
           y arrastra sus respuestas.
         </p>
         {error ? (
-          <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+          <p className="text-xs text-danger" role="alert">
             {error}
           </p>
         ) : null}
         <div className="flex items-center gap-2">
-          <button
-            className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
+          <Button
             disabled={pending}
             onClick={confirmDelete}
+            size="sm"
             type="button"
+            variant="destructive"
           >
             {pending ? "Borrando…" : "Sí, borrar"}
-          </button>
-          <button
-            className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted"
+          </Button>
+          <Button
             disabled={pending}
             onClick={() => setMode("idle")}
+            size="sm"
             type="button"
+            variant="ghost"
           >
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -163,7 +168,7 @@ export function PostActionsMenu({ postId, initialContent }: Props) {
         Editar
       </ActionButton>
       <ActionButton
-        className="hover:text-rose-600 dark:hover:text-rose-400"
+        className="hover:text-danger"
         label="Borrar post"
         onClick={() => setMode("confirmDelete")}
       >

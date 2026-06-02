@@ -29,7 +29,7 @@ export function NotificationItem({
     <Link
       className={cn(
         "flex gap-3 transition hover:bg-surface-muted focus-visible:bg-surface-muted focus-visible:outline-none",
-        compact ? "px-4 py-3" : "rounded-xl border border-border px-4 py-3.5",
+        compact ? "px-4 py-3" : "rounded-2xl border border-border px-4 py-3.5",
         read ? "bg-transparent" : "bg-brand-soft/40",
       )}
       href={notificationHref(notification)}

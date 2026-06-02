@@ -22,7 +22,7 @@ export function MessagesShell({ list, children }: Props) {
   const conversationOpen = /^\/messages\/.+/.test(pathname);
 
   return (
-    <div className="flex h-[calc(100dvh-7.5rem)] overflow-hidden rounded-2xl border border-border bg-surface">
+    <div className="flex h-[calc(100dvh-7.5rem)] overflow-hidden rounded-3xl border border-border bg-surface shadow-soft">
       <aside
         aria-label="Conversaciones"
         className={cn(

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MessageIcon } from "@/components/feed/icons";
+import { buttonVariants } from "@/components/ui/button";
 
 // 404 de conversación: no existe o el viewer no es miembro (getConversationById
 // devuelve null y autoriza por membresía).
@@ -16,10 +17,7 @@ export default function ConversationNotFound() {
       <p className="max-w-xs text-sm text-muted-foreground">
         No existe o no formas parte de ella.
       </p>
-      <Link
-        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-        href="/messages"
-      >
+      <Link className={buttonVariants()} href="/messages">
         Volver a Mensajes
       </Link>
     </div>

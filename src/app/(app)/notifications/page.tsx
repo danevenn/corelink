@@ -6,6 +6,8 @@ import { BellIcon } from "@/components/feed/icons";
 import { MarkAllReadButton } from "@/components/feed/mark-all-read-button";
 import { FeedItem, MotionProvider } from "@/components/feed/motion";
 import { NotificationItem } from "@/components/feed/notification-item";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { getNotifications, getUnreadCount } from "@/server/notifications";
 import { getViewer } from "@/server/viewer";
 
@@ -77,7 +79,10 @@ export default async function NotificationsPage({
       {page.nextCursor ? (
         <div className="flex justify-center pt-2">
           <Link
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-surface-muted"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "rounded-full",
+            )}
             href={`/notifications?cursor=${page.nextCursor}`}
           >
             Cargar más

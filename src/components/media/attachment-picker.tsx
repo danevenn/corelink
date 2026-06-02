@@ -57,9 +57,9 @@ export function AttachButton({
       <label
         aria-disabled={isDisabled}
         className={cn(
-          "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-muted-foreground transition hover:bg-surface-muted hover:text-foreground focus-within:ring-2 focus-within:ring-brand",
+          "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full text-muted-foreground transition hover:bg-surface-muted hover:text-foreground focus-within:ring-2 focus-within:ring-brand",
           buttonVariant === "icon"
-            ? "size-10 justify-center rounded-full"
+            ? "size-10 justify-center"
             : "px-2.5 py-1.5 text-xs font-medium",
           isDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent",
         )}
@@ -97,7 +97,7 @@ export function AttachmentPreviews({ uploads }: { uploads: UseUploadsResult }) {
                 transition={{ duration: 0.15, ease: "easeOut" }}
               >
                 {item.isImage && item.previewUrl ? (
-                  <div className="relative size-20 overflow-hidden rounded-lg border border-border bg-surface-muted">
+                  <div className="relative size-20 overflow-hidden rounded-2xl border border-border bg-surface-muted">
                     {/* biome-ignore lint/performance/noImgElement: preview de object URL local. */}
                     <img
                       alt={`Previsualización de ${item.name}`}
@@ -110,13 +110,13 @@ export function AttachmentPreviews({ uploads }: { uploads: UseUploadsResult }) {
                       </div>
                     ) : null}
                     {item.status === "error" ? (
-                      <div className="absolute inset-0 grid place-items-center bg-rose-900/60 px-1 text-center text-[10px] font-medium text-white">
+                      <div className="absolute inset-0 grid place-items-center bg-danger/70 px-1 text-center text-[10px] font-medium text-white">
                         Error
                       </div>
                     ) : null}
                   </div>
                 ) : (
-                  <div className="flex h-20 w-40 flex-col justify-center gap-1 rounded-lg border border-border bg-surface-muted px-3">
+                  <div className="flex h-20 w-40 flex-col justify-center gap-1 rounded-2xl border border-border bg-surface-muted px-3">
                     <div className="flex items-center gap-1.5">
                       <FileIcon className="size-4 shrink-0 text-muted-foreground" />
                       <span className="truncate text-xs font-medium text-foreground">
@@ -148,7 +148,7 @@ export function AttachmentPreviews({ uploads }: { uploads: UseUploadsResult }) {
       ) : null}
 
       {uploads.addError ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {uploads.addError}
         </p>
       ) : null}

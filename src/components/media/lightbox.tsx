@@ -154,7 +154,7 @@ export function Lightbox({ images, index, onIndexChange, onClose }: Props) {
         <motion.img
           alt={current.alt}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-h-[88vh] max-w-[92vw] rounded-lg object-contain shadow-2xl"
+          className="max-h-[88vh] max-w-[92vw] rounded-2xl object-contain shadow-2xl"
           initial={{ opacity: 0, scale: 0.97 }}
           key={current.url}
           src={current.url}

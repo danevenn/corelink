@@ -69,7 +69,7 @@ export function OfficialToggle({ postId, isOfficial }: Props) {
         <button
           aria-pressed={optimisticOfficial}
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition disabled:opacity-50",
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition disabled:opacity-50",
             optimisticOfficial
               ? "text-muted-foreground hover:bg-surface-muted hover:text-foreground"
               : "text-official hover:bg-official-soft",
@@ -91,7 +91,7 @@ export function OfficialToggle({ postId, isOfficial }: Props) {
             : "No es procedimiento oficial."}
       </p>
       {error ? (
-        <p className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       ) : null}

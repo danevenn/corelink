@@ -67,7 +67,7 @@ export default async function ChannelPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5">
+      <header className="flex flex-col gap-2 rounded-3xl border border-border bg-surface p-5 shadow-soft">
         <div className="flex items-center gap-2">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
             <HashIcon className="size-5" />

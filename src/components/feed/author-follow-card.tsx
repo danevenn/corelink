@@ -17,7 +17,7 @@ type Props = {
 export function AuthorFollowCard({ author, followState }: Props) {
   const authorHref = `/users/${author.id}`;
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+    <div className="flex items-center gap-3 rounded-3xl border border-border bg-surface px-4 py-3 shadow-soft">
       <Link
         aria-label={`Ver el perfil de ${author.displayName}`}
         className="shrink-0 rounded-full"

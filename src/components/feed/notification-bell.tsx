@@ -184,7 +184,7 @@ export function NotificationBell({ initialUnread }: Props) {
       {open ? (
         <div
           aria-label="Notificaciones recientes"
-          className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-surface shadow-lg focus:outline-none"
+          className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-elevated focus:outline-none"
           ref={panelRef}
           role="menu"
           tabIndex={-1}

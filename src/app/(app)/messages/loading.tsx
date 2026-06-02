@@ -1,7 +1,7 @@
 // Esqueleto del índice de Mensajes mientras carga la lista.
 export default function MessagesLoading() {
   return (
-    <div className="flex h-[calc(100dvh-7.5rem)] overflow-hidden rounded-2xl border border-border bg-surface">
+    <div className="flex h-[calc(100dvh-7.5rem)] overflow-hidden rounded-3xl border border-border bg-surface shadow-soft">
       <div className="hidden w-80 shrink-0 flex-col border-r border-border md:flex">
         <div className="border-b border-border px-4 py-3">
           <div className="h-5 w-24 animate-pulse rounded bg-surface-muted" />

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 // Límite de error de la página de canal. Permite reintentar sin recargar todo.
 
 export default function ChannelError({
@@ -10,7 +12,7 @@ export default function ChannelError({
 }) {
   return (
     <div
-      className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-6 py-12 text-center"
+      className="flex flex-col items-center gap-3 rounded-3xl border border-border bg-surface px-6 py-12 text-center shadow-soft"
       role="alert"
     >
       <p className="font-medium text-foreground">
@@ -20,13 +22,9 @@ export default function ChannelError({
         Algo ha fallado al recuperar las publicaciones de este canal. Inténtalo
         de nuevo.
       </p>
-      <button
-        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-        onClick={reset}
-        type="button"
-      >
+      <Button onClick={reset} type="button">
         Reintentar
-      </button>
+      </Button>
     </div>
   );
 }

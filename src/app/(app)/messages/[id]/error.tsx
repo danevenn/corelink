@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 // Límite de error de una conversación. Permite reintentar sin recargar la app.
 export default function ConversationError({
   reset,
@@ -18,13 +20,9 @@ export default function ConversationError({
       <p className="max-w-xs text-sm text-muted-foreground">
         Algo ha fallado al recuperar los mensajes. Inténtalo de nuevo.
       </p>
-      <button
-        className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90"
-        onClick={reset}
-        type="button"
-      >
+      <Button onClick={reset} type="button">
         Reintentar
-      </button>
+      </Button>
     </div>
   );
 }

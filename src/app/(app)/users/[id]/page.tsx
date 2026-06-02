@@ -129,11 +129,11 @@ function ProfileHeader({ profile }: { profile: UserProfileView }) {
       : null;
 
   return (
-    <header className="overflow-hidden rounded-2xl border border-border bg-surface">
-      {/* Banda decorativa slate+índigo de la cabecera. */}
+    <header className="overflow-hidden rounded-3xl border border-border bg-surface shadow-soft">
+      {/* Banda decorativa de marca (teal) que da identidad a la cabecera. */}
       <div
         aria-hidden="true"
-        className="h-20 bg-gradient-to-r from-brand/80 via-brand/40 to-surface-muted sm:h-24"
+        className="h-20 bg-gradient-to-r from-brand/80 via-brand/40 to-accent2/20 sm:h-24"
       />
 
       <div className="flex flex-col gap-4 p-5 sm:p-6">

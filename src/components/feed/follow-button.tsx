@@ -91,7 +91,7 @@ export function FollowButton({
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition",
           following
-            ? "border-border bg-surface text-muted-foreground hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400"
+            ? "border-border bg-surface text-muted-foreground hover:border-danger/50 hover:text-danger"
             : "border-brand bg-brand text-brand-foreground hover:opacity-90",
         )}
         onClick={onClick}
@@ -123,7 +123,7 @@ export function FollowButton({
             : `Ya no sigues a ${targetName}`}
       </span>
       {error ? (
-        <span className="text-xs text-rose-600 dark:text-rose-400" role="alert">
+        <span className="text-xs text-danger" role="alert">
           {error}
         </span>
       ) : null}

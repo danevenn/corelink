@@ -15,6 +15,8 @@ import {
 } from "react";
 import { Avatar } from "@/components/feed/avatar";
 import { PlusIcon } from "@/components/feed/icons";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   createGroupConversation,
@@ -147,7 +149,7 @@ export function NewConversationMenu() {
         <div
           aria-label="Nueva conversación"
           aria-modal="true"
-          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-elevated"
           ref={dialogRef}
           role="dialog"
         >
@@ -187,8 +189,7 @@ export function NewConversationMenu() {
                 >
                   Nombre del grupo
                 </label>
-                <input
-                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"
+                <Input
                   id={groupNameId}
                   maxLength={100}
                   onChange={(e) => setGroupName(e.target.value)}
@@ -215,11 +216,11 @@ export function NewConversationMenu() {
               </div>
             ) : null}
 
-            <input
+            <Input
               aria-label="Buscar personas"
-              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar personas…"
+              type="search"
               value={query}
             />
 
@@ -280,20 +281,15 @@ export function NewConversationMenu() {
             </div>
 
             {error ? (
-              <p className="text-xs text-rose-500" role="alert">
+              <p className="text-xs text-danger" role="alert">
                 {error}
               </p>
             ) : null}
 
             {mode === "group" ? (
-              <button
-                className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90 disabled:opacity-60"
-                disabled={pending}
-                onClick={createGroup}
-                type="button"
-              >
+              <Button disabled={pending} onClick={createGroup} type="button">
                 {pending ? "Creando…" : "Crear grupo"}
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>

@@ -39,7 +39,7 @@ export function ModerateDeleteButton({ postId, authorName }: Props) {
     <>
       <button
         aria-label={`Borrar como moderación el post de ${authorName}`}
-        className="inline-flex items-center gap-1 rounded-md border border-rose-300 px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
+        className="inline-flex items-center gap-1 rounded-full border border-danger/40 px-2.5 py-1 text-xs font-medium text-danger transition hover:bg-danger-soft"
         onClick={() => {
           setError(null);
           setOpen(true);

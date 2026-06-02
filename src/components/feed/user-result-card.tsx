@@ -16,7 +16,7 @@ type Props = {
 
 export function UserResultCard({ user }: Props) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+    <div className="flex items-center gap-3 rounded-3xl border border-border bg-surface px-4 py-3 transition hover:-translate-y-0.5 hover:shadow-soft">
       <Link
         aria-label={`Ver el perfil de ${user.displayName}`}
         className="shrink-0 rounded-full"

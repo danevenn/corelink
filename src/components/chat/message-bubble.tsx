@@ -67,7 +67,7 @@ export function MessageBubble({
                   : "rounded-bl-md bg-surface-muted text-foreground",
               )
             : "",
-          status === "failed" && "opacity-70 ring-1 ring-rose-400",
+          status === "failed" && "opacity-70 ring-1 ring-danger/60",
         )}
       >
         {hasText ? (
@@ -94,7 +94,7 @@ export function MessageBubble({
         ) : null}
         {mine && status === "failed" ? (
           <button
-            className="font-medium text-rose-500 hover:underline"
+            className="font-medium text-danger hover:underline"
             onClick={onRetry}
             type="button"
           >
