@@ -29,6 +29,7 @@ import {
 } from "@/lib/validations/admin";
 import { isAdmin, requireAdmin, requireModerator } from "@/server/authz";
 import type { ActionResult } from "@/server/post-actions";
+import { deleteAttachmentsFromStorage } from "@/server/storage/gc";
 
 const ADMIN_PATH = "/admin";
 
@@ -533,10 +534,28 @@ export async function deleteUser(
   }
 
   try {
+    // GC: recogemos las `key` de TODOS los adjuntos del usuario ANTES del
+    // cascade de `removeUser` (que borra User → posts/respuestas → attachments y
+    // → mensajes → attachments en BD, pero deja los objetos físicos huérfanos en
+    // el storage). Dos vías: adjuntos de sus posts/respuestas (Attachment →
+    // post.authorId) y de sus mensajes enviados (Attachment → message.senderId).
+    const attachments = await prisma.attachment.findMany({
+      where: {
+        OR: [
+          { post: { authorId: parsed.data.userId } },
+          { message: { senderId: parsed.data.userId } },
+        ],
+      },
+      select: { key: true },
+    });
+
     await auth.api.removeUser({
       headers: await headers(),
       body: { userId: parsed.data.userId },
     });
+
+    // Best-effort: nunca rompe el borrado ya completado.
+    await deleteAttachmentsFromStorage(attachments.map((a) => a.key));
 
     revalidatePath(ADMIN_PATH);
     return { ok: true, data: { userId: parsed.data.userId } };

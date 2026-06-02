@@ -328,6 +328,8 @@ export async function sendMessage(
                     key: a.key,
                     mime: a.mime,
                     size: a.size,
+                    width: a.width ?? null,
+                    height: a.height ?? null,
                   })),
                 },
               }

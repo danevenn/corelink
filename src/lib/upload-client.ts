@@ -22,6 +22,13 @@ export type UploadedFile = {
   key: string;
   mime: AllowedMime;
   size: number;
+  /**
+   * Dimensiones finales calculadas por el servidor con sharp (px). El backend es
+   * la fuente de verdad; el cliente solo las reenvía a createPost/sendMessage
+   * para persistirlas en Attachment (evita layout shift). Ausentes en no-imágenes.
+   */
+  width?: number;
+  height?: number;
 };
 
 /** `accept` del input file derivado de los MIME permitidos. */
@@ -57,7 +64,14 @@ export function validateFile(file: File): string | null {
 
 type UploadOkBody = {
   ok: true;
-  data: { url: string; key: string; size: number; contentType: string };
+  data: {
+    url: string;
+    key: string;
+    size: number;
+    contentType: string;
+    width?: number | null;
+    height?: number | null;
+  };
 };
 type UploadErrBody = { ok: false; error: { message: string } };
 
@@ -108,5 +122,9 @@ export async function uploadFile(
     key: body.data.key,
     mime,
     size: body.data.size,
+    // Reenviamos las dimensiones que calculó el servidor (si las hay) para que
+    // createPost/sendMessage las persistan. `?? undefined` colapsa null a opcional.
+    width: body.data.width ?? undefined,
+    height: body.data.height ?? undefined,
   };
 }

@@ -17,6 +17,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { isAllowedMime, MAX_UPLOAD_BYTES } from "@/lib/validations/media";
 import { getStorage } from "@/server/storage";
+import { optimizeUpload } from "@/server/storage/optimize";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,12 +82,29 @@ export async function POST(req: Request): Promise<Response> {
     return fail("El archivo supera el tamaño máximo.", 413);
   }
 
-  // 6) Subida vía driver activo.
+  // 6) Optimización de imágenes ANTES de almacenar: las imágenes raster se
+  //    reescalan (lado mayor ≤ MAX_DIMENSION) y se recodifican a WebP; GIF y PDF
+  //    se respetan. Extrae width/height finales para persistirlos en Attachment
+  //    (el cliente los reenvía al crear el post/mensaje). NUNCA lanza: ante un
+  //    fallo de sharp devuelve el original sin dimensiones.
+  const optimized = await optimizeUpload({
+    data,
+    filename: file.name || "archivo",
+    contentType,
+  });
+
+  // Re-chequeo de tamaño tras procesar: la optimización normalmente reduce, pero
+  // por seguridad no permitimos que un resultado supere el máximo.
+  if (optimized.data.byteLength > MAX_UPLOAD_BYTES) {
+    return fail("El archivo procesado supera el tamaño máximo.", 413);
+  }
+
+  // 7) Subida vía driver activo.
   try {
     const stored = await getStorage().put({
-      data,
-      filename: file.name || "archivo",
-      contentType,
+      data: optimized.data,
+      filename: optimized.filename,
+      contentType: optimized.contentType,
     });
     return Response.json(
       {
@@ -96,6 +114,10 @@ export async function POST(req: Request): Promise<Response> {
           key: stored.key,
           size: stored.size,
           contentType: stored.contentType,
+          // Dimensiones finales (null si no es imagen o no se pudieron leer).
+          // El cliente las reenvía a createPost/sendMessage para persistirlas.
+          width: optimized.width,
+          height: optimized.height,
         },
       },
       { status: 201 },

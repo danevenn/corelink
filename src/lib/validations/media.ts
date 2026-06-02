@@ -47,6 +47,14 @@ export const uploadedAttachmentSchema = z.object({
     .int()
     .positive()
     .max(MAX_UPLOAD_BYTES, "El archivo supera el tamaño máximo."),
+  /**
+   * Dimensiones finales de la imagen (px), calculadas por la capa de subida con
+   * `sharp` y reenviadas por el cliente. Opcionales y compatibles hacia atrás:
+   * si no vienen (no-imagen, GIF sin dims legibles o cliente antiguo) → null en
+   * BD, como hasta ahora. Acotamos el máximo para defensa en profundidad.
+   */
+  width: z.number().int().positive().max(100_000).optional(),
+  height: z.number().int().positive().max(100_000).optional(),
 });
 
 export type UploadedAttachment = z.infer<typeof uploadedAttachmentSchema>;

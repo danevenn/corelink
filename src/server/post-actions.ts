@@ -29,6 +29,7 @@ import {
 } from "@/lib/validations/post";
 import { canModerate, getViewer } from "@/server/authz";
 import { createNotification } from "@/server/notifications";
+import { deleteAttachmentsFromStorage } from "@/server/storage/gc";
 
 // ── Contrato de resultado ───────────────────────────────────────────────────
 
@@ -58,6 +59,29 @@ function revalidateFeed(postId?: string | null): void {
   if (postId) {
     revalidatePath(`${FEED_PATH}/${postId}`);
   }
+}
+
+/**
+ * Reúne el id del post raíz a borrar y los de TODAS sus respuestas descendientes
+ * (el cascade de `PostThread` arrastra el subárbol completo). Recorre nivel a
+ * nivel con queries acotadas por `parentId IN (...)`, evitando recursión SQL.
+ * Necesario para recoger las `key` de adjuntos de todo el subárbol ANTES de que
+ * el cascade borre esas filas y perdamos la referencia al objeto en storage.
+ */
+async function collectThreadPostIds(rootId: string): Promise<string[]> {
+  const all = [rootId];
+  let frontier = [rootId];
+  // El árbol de respuestas de un post de intranet es poco profundo; el bucle
+  // converge rápido. Cota de seguridad por si hubiera datos patológicos.
+  for (let depth = 0; frontier.length > 0 && depth < 64; depth++) {
+    const children = await prisma.post.findMany({
+      where: { parentId: { in: frontier } },
+      select: { id: true },
+    });
+    frontier = children.map((c) => c.id);
+    all.push(...frontier);
+  }
+  return all;
 }
 
 // ── Acciones ────────────────────────────────────────────────────────────────
@@ -133,6 +157,8 @@ export async function createPost(
                   key: a.key,
                   mime: a.mime,
                   size: a.size,
+                  width: a.width ?? null,
+                  height: a.height ?? null,
                 })),
               },
             }
@@ -290,7 +316,20 @@ export async function deletePost(
       };
     }
 
+    // GC: recogemos las `key` de los adjuntos del post Y de todas sus respuestas
+    // descendientes ANTES del cascade (que borra esas filas de BD pero deja los
+    // objetos físicos huérfanos en el storage). Tras borrar de BD, los limpiamos
+    // best-effort.
+    const threadIds = await collectThreadPostIds(parsed.data.id);
+    const attachments = await prisma.attachment.findMany({
+      where: { postId: { in: threadIds } },
+      select: { key: true },
+    });
+
     await prisma.post.delete({ where: { id: parsed.data.id } });
+
+    // Best-effort: nunca rompe el borrado ya completado en BD.
+    await deleteAttachmentsFromStorage(attachments.map((a) => a.key));
 
     revalidateFeed(target.parentId);
     return { ok: true, data: { id: parsed.data.id } };
