@@ -14,7 +14,10 @@
       "!dist",
       "!build",
       "!**/generated",
-      "!public/emoji"
+      "!public/emoji",
+      "!playwright-report",
+      "!test-results",
+      "!blob-report"
     ]
   },
   "css": {

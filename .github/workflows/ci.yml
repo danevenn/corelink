@@ -92,3 +92,86 @@ jobs:
 
       - name: Tests (vitest)
         run: pnpm test
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Capa 2: E2E con Playwright (Chromium) sobre la app real en navegador.
+  # Job SEPARADO del `verify` (Capa 1) para aislar fallos y artefactos. Tiene su
+  # PROPIO Postgres service con la DB `corelink_e2e` (efímera del runner): el
+  # globalSetup de Playwright la migra y siembra, y el webServer arranca un build
+  # de producción contra ella. No comparte BD ni estado con `verify`.
+  # ───────────────────────────────────────────────────────────────────────────
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: corelink
+          POSTGRES_PASSWORD: corelink
+          # DB E2E efímera del runner (la prepara el globalSetup: migrate + seed).
+          POSTGRES_DB: corelink_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U corelink -d corelink_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # DATABASE_URL → corelink_e2e (DB del service container). El globalSetup la
+      # migra y siembra; el webServer arranca la app contra ella.
+      DATABASE_URL: postgresql://corelink:corelink@localhost:5432/corelink_e2e?schema=public
+      BETTER_AUTH_SECRET: e2e-dummy-secret-not-used-in-production-000000=
+      BETTER_AUTH_URL: http://localhost:3000
+      STORAGE_DRIVER: local
+      # Modo demo activo (el spec de auth cubre el botón "Probar demo").
+      NEXT_PUBLIC_DEMO_MODE: "true"
+      # Desactiva el rate limiting de Better Auth en E2E (muchos logins seguidos).
+      E2E_DISABLE_RATE_LIMIT: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      CI: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.2.2
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm prisma generate
+
+      # Instala el navegador Chromium + sus dependencias de sistema en el runner.
+      - name: Install Playwright (Chromium)
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `playwright test` ejecuta el globalSetup (migrate deploy + seed sobre
+      # corelink_e2e) y arranca el webServer (pnpm build && pnpm start) antes de
+      # los specs. No hace falta build/migrate manual aquí.
+      - name: E2E tests (Playwright)
+        run: pnpm test:e2e
+
+      # Reporte + traces/vídeos solo si algo falla (diagnóstico).
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

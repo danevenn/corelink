@@ -38,6 +38,15 @@ export const auth = betterAuth({
   }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  // Rate limiting (Better Auth, activo por defecto en producción). En la suite
+  // E2E hacemos muchos logins seguidos contra el MISMO servidor, lo que dispara
+  // el límite ("Too many requests") y vuelve los tests flaky. Lo desactivamos
+  // SOLO cuando `E2E_DISABLE_RATE_LIMIT === "true"` (definido únicamente en el
+  // entorno E2E: `.env.e2e` y el job e2e de CI). En producción la variable no
+  // existe, así que el rate limiting queda INTACTO. Cambio mínimo de testeo.
+  ...(process.env.E2E_DISABLE_RATE_LIMIT === "true"
+    ? { rateLimit: { enabled: false } }
+    : {}),
   emailAndPassword: {
     enabled: true,
     // R1: sin auto-registro público. El login sigue funcionando; el sign-up
