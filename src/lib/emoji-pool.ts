@@ -7,7 +7,7 @@
 
 /** Un emoji del pool curado. Claves cortas para minimizar el JSON. */
 export type PoolEmoji = {
-  /** hexcode OpenMoji (nombre de fichero sin extensión). */
+  /** hexcode del emoji; solo se usa como clave estable de lista en el render. */
   h: string;
   /** Carácter emoji Unicode (lo que se inserta en el textarea). */
   e: string;

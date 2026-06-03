@@ -336,13 +336,13 @@ function SiteFooter() {
             Emojis por{" "}
             <a
               className="underline transition hover:text-foreground"
-              href="https://openmoji.org/"
+              href="https://github.com/jdecked/twemoji"
               rel="noreferrer"
               target="_blank"
             >
-              OpenMoji
+              Twemoji
             </a>{" "}
-            (CC BY-SA 4.0)
+            (CC-BY 4.0)
           </span>
         </p>
       </div>

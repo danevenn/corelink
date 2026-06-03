@@ -1,17 +1,18 @@
 "use client";
 
-// Imagen de UN emoji renderizado como SVG de OpenMoji.
+// Imagen de UN emoji renderizado como SVG de Twemoji.
 //
 // Es la única parte cliente del render de emojis: necesita `onError` para la
-// cadena de fallback de nombres de OpenMoji (con FE0F → sin FE0F → carácter
-// nativo). El texto que lo rodea se renderiza en el servidor (ver `EmojiText`).
+// cadena de fallback de nombres de Twemoji (regla primaria → todos los
+// codepoints → carácter nativo). El texto que lo rodea se renderiza en el
+// servidor (ver `EmojiText`).
 //
 // Seguridad: recibe el carácter emoji ya troceado por `splitEmoji`; nunca
 // interpola HTML. El `alt`/`aria-label` es el nombre del emoji o el propio
 // carácter (no hay vector XSS en atributos de texto de React).
 
 import { useState } from "react";
-import { openmojiUrl, openmojiUrlNoVariation } from "@/lib/emoji";
+import { emojiUrl, emojiUrlFull } from "@/lib/emoji";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -23,7 +24,7 @@ type Props = {
 };
 
 // Paso de la cadena de fallback en el que está esta imagen.
-type Stage = "primary" | "noVariation" | "native";
+type Stage = "primary" | "full" | "native";
 
 export function EmojiImg({ emoji, label, className }: Props) {
   const [stage, setStage] = useState<Stage>("primary");
@@ -37,8 +38,8 @@ export function EmojiImg({ emoji, label, className }: Props) {
     );
   }
 
-  const altUrl = openmojiUrlNoVariation(emoji);
-  const src = stage === "noVariation" && altUrl ? altUrl : openmojiUrl(emoji);
+  const altUrl = emojiUrlFull(emoji);
+  const src = stage === "full" && altUrl ? altUrl : emojiUrl(emoji);
 
   return (
     // biome-ignore lint/performance/noImgElement: SVG estático same-origin servido bajo demanda; next/image no aporta aquí (sin optimización de SVG) y añadiría overhead.
@@ -52,9 +53,9 @@ export function EmojiImg({ emoji, label, className }: Props) {
       draggable={false}
       loading="lazy"
       onError={() => {
-        // 1.º intento (CON FE0F) falló → prueba SIN FE0F si existe esa variante;
-        // si no, salta directo al carácter nativo.
-        setStage((s) => (s === "primary" && altUrl ? "noVariation" : "native"));
+        // 1.º intento (regla Twemoji) falló → prueba el nombre con TODOS los
+        // codepoints si difiere; si no, salta directo al carácter nativo.
+        setStage((s) => (s === "primary" && altUrl ? "full" : "native"));
       }}
       src={src}
     />

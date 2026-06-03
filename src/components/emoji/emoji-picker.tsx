@@ -6,7 +6,7 @@
 //   cierra, click-fuera cierra).
 // - Pool CURADO cargado BAJO DEMANDA (fetch del JSON estático al abrir; no entra
 //   en el bundle). Categorías + búsqueda por nombre/keyword.
-// - Los emojis se muestran ya como SVG de OpenMoji (coherencia con el render).
+// - Los emojis se muestran ya como SVG de Twemoji (coherencia con el render).
 // - Rejilla navegable por teclado (flechas + Enter), accesible (role=grid).
 // - Al elegir uno NO cierra el popover (permite encadenar varios); el padre
 //   inserta el carácter Unicode en la posición del cursor del textarea.
@@ -135,7 +135,7 @@ export function EmojiPicker({
           )}
         </div>
         <p className="border-t border-border px-3 py-1.5 text-[10px] leading-tight text-muted-foreground">
-          Emojis por OpenMoji (CC BY-SA 4.0)
+          Emojis por Twemoji (CC-BY 4.0)
         </p>
       </PopoverContent>
     </Popover>

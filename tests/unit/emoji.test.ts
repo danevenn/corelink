@@ -1,51 +1,65 @@
 import { describe, expect, it } from "vitest";
 import {
+  emojiAssetName,
+  emojiAssetNameFull,
   hasEmoji,
-  openmojiHexcode,
-  openmojiHexcodeNoVariation,
   splitEmoji,
 } from "@/lib/emoji";
 
-// La regla delicada de OpenMoji sobre FE0F (VS16):
-//   - emoji suelto con FE0F → se ELIMINA el FE0F,
-//   - secuencia ZWJ (200D) o keycap (20E3) → se CONSERVA el FE0F.
-describe("openmojiHexcode", () => {
+// La regla delicada de Twemoji sobre FE0F (VS16), verificada contra los SVG
+// reales de @discordapp/twemoji v16:
+//   - si la secuencia contiene un ZWJ (200D) → se CONSERVA el FE0F,
+//   - si NO contiene ZWJ (emoji suelto O keycap) → se ELIMINA todo FE0F.
+// Hexcodes en MINÚSCULAS unidos por "-".
+describe("emojiAssetName (convención Twemoji)", () => {
   it("elimina FE0F en un emoji suelto con variation selector (❤️ → 2764)", () => {
-    expect(openmojiHexcode("❤️")).toBe("2764");
+    expect(emojiAssetName("❤️")).toBe("2764");
   });
 
-  it("emoji simple sin FE0F se mantiene (✅ → 2705)", () => {
-    expect(openmojiHexcode("✅")).toBe("2705");
+  it("elimina FE0F en ✌️ (sin ZWJ → 270c)", () => {
+    expect(emojiAssetName("✌️")).toBe("270c");
   });
 
-  it("conserva FE0F dentro de una secuencia ZWJ (❤️‍🔥)", () => {
-    // corazón en llamas: 2764 FE0F 200D 1F525 → el FE0F se conserva.
-    expect(openmojiHexcode("❤️‍🔥")).toBe("2764-FE0F-200D-1F525");
+  it("emoji simple sin FE0F se mantiene en minúscula (👍 → 1f44d)", () => {
+    expect(emojiAssetName("👍")).toBe("1f44d");
   });
 
-  it("conserva FE0F en un keycap (#️⃣ → 23-FE0F-20E3)", () => {
-    // La función NO rellena con ceros a 4 dígitos: usa el hex tal cual del
-    // codepoint (# = U+0023 → "23"). Lo relevante es que el FE0F se conserva.
-    expect(openmojiHexcode("#️⃣")).toBe("23-FE0F-20E3");
+  it("conserva FE0F dentro de una secuencia ZWJ (❤️‍🔥 → 2764-fe0f-200d-1f525)", () => {
+    expect(emojiAssetName("❤️‍🔥")).toBe("2764-fe0f-200d-1f525");
   });
 
-  it("emoji con skin tone modifier conserva ambos codepoints (👍🏽)", () => {
-    // pulgar arriba + tono de piel medio: 1F44D 1F3FD (sin FE0F que quitar).
-    expect(openmojiHexcode("👍🏽")).toBe("1F44D-1F3FD");
+  it("secuencia ZWJ sin FE0F (👨‍💻 → 1f468-200d-1f4bb)", () => {
+    expect(emojiAssetName("👨‍💻")).toBe("1f468-200d-1f4bb");
   });
 
-  it("bandera (regional indicators) une ambos codepoints (🇪🇸)", () => {
-    expect(openmojiHexcode("🇪🇸")).toBe("1F1EA-1F1F8");
+  it("familia ZWJ larga (👨‍👩‍👧‍👦)", () => {
+    expect(emojiAssetName("👨‍👩‍👧‍👦")).toBe(
+      "1f468-200d-1f469-200d-1f467-200d-1f466",
+    );
+  });
+
+  it("keycap SIN ZWJ → elimina FE0F (#️⃣ → 23-20e3)", () => {
+    // Punto clave que distingue a Twemoji de OpenMoji: el keycap no lleva ZWJ,
+    // así que su FE0F se ELIMINA (en OpenMoji se conservaba).
+    expect(emojiAssetName("#️⃣")).toBe("23-20e3");
+  });
+
+  it("emoji con skin tone modifier conserva ambos codepoints (👍🏽 → 1f44d-1f3fd)", () => {
+    expect(emojiAssetName("👍🏽")).toBe("1f44d-1f3fd");
+  });
+
+  it("bandera (regional indicators) une ambos codepoints (🇪🇸 → 1f1ea-1f1f8)", () => {
+    expect(emojiAssetName("🇪🇸")).toBe("1f1ea-1f1f8");
   });
 });
 
-describe("openmojiHexcodeNoVariation", () => {
-  it("ofrece la variante CON FE0F como alternativa para un emoji suelto", () => {
-    expect(openmojiHexcodeNoVariation("❤️")).toBe("2764-FE0F");
+describe("emojiAssetNameFull", () => {
+  it("ofrece la variante CON todos los codepoints como alternativa (❤️ → 2764-fe0f)", () => {
+    expect(emojiAssetNameFull("❤️")).toBe("2764-fe0f");
   });
 
-  it("devuelve null cuando no hay alternativa distinta (✅ sin FE0F)", () => {
-    expect(openmojiHexcodeNoVariation("✅")).toBeNull();
+  it("devuelve null cuando no hay alternativa distinta (👍 sin FE0F)", () => {
+    expect(emojiAssetNameFull("👍")).toBeNull();
   });
 });
 

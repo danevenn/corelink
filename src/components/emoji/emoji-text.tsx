@@ -1,4 +1,4 @@
-// Renderiza texto del usuario sustituyendo CADA emoji por su SVG de OpenMoji.
+// Renderiza texto del usuario sustituyendo CADA emoji por su SVG de Twemoji.
 //
 // Server Component: trocea el string con `splitEmoji` y emite nodos React
 // (texto plano + islas <EmojiImg> para los emojis). NO usa

@@ -99,28 +99,33 @@ pantallas (chat, admin, perfil, notificaciones, búsqueda, cambio de contraseña
 siguen operativas con el estilo anterior y se migrarán tras la aprobación. Los
 cambios de avatares e iconos de reacción se propagan a toda la app.
 
-## 9. Emojis unificados (OpenMoji)
+## 9. Emojis unificados (Twemoji)
 
 Todos los emojis INLINE del contenido de usuario (posts, respuestas, chat,
-snippets) se renderizan como **SVG de [OpenMoji](https://openmoji.org/)**, no
-con los emojis del sistema/Apple. Así el look es consistente entre plataformas.
+snippets) se renderizan como **SVG de [Twemoji](https://github.com/jdecked/twemoji)**,
+no con los emojis del sistema/Apple. Así el look es consistente entre
+plataformas (Twemoji es plano y cuadrado, con manos y miniaturas legibles).
 
-- **Self-host**: el set de color completo (4495 SVG, ~22 MB) vive en
-  `public/emoji/openmoji/<HEXCODE>.svg`. Son **estáticos** y se cargan **bajo
-  demanda** por emoji (lazy, nunca en el bundle JS).
+- **Self-host**: el set SVG completo (3846 SVG, ~17 MB) vive en
+  `public/emoji/twemoji/<hexcode>.svg`, extraído del paquete
+  `@discordapp/twemoji` (v16, fork mantenido por jdecked). Son **estáticos** y
+  se cargan **bajo demanda** por emoji (lazy, nunca en el bundle JS).
 - **Render**: `<EmojiText>` (`src/components/emoji/emoji-text.tsx`) trocea el
   texto con `emoji-regex` y emite nodos React (sin `dangerouslySetInnerHTML` →
   inmune a XSS). Cada emoji se pinta con `<EmojiImg>` (`<img>` lazy a 1.2em,
-  `alt`=nombre). Fallback: nombre OpenMoji con FE0F → sin FE0F → carácter
-  nativo si no hay SVG.
+  `alt`=nombre). Fallback: nombre primario (regla Twemoji) → nombre con todos
+  los codepoints → carácter nativo si no hay SVG.
 - **Selector**: `<EmojiPicker>` en los 3 compositores. Pool **curado** (~585
   emojis por categorías, con buscador) cargado bajo demanda desde
   `public/emoji/emoji-pool.json`. Inserta el carácter Unicode en el cursor.
-- **Naming OpenMoji**: hexcodes en MAYÚSCULAS unidos por `-`; el VS16 `FE0F`
-  suelto se elimina (❤️ → `2764.svg`) pero se conserva en secuencias ZWJ y
-  keycaps. Lógica en `src/lib/emoji.ts`.
+- **Naming Twemoji**: hexcodes en MINÚSCULAS unidos por `-`. Regla FE0F de
+  Twemoji: si hay ZWJ (`200d`) se conserva el `FE0F` (❤️‍🔥 →
+  `2764-fe0f-200d-1f525.svg`); si NO hay ZWJ se elimina todo `FE0F`, incluidos
+  los keycaps (❤️ → `2764.svg`, #️⃣ → `23-20e3.svg`). Lógica en
+  `src/lib/emoji.ts` (`emojiAssetName`).
 
-> **Licencia (obligatoria):** los emojis son de **OpenMoji**, licencia
-> **CC BY-SA 4.0**. La atribución aparece en el footer de la landing y en el
-> pie del propio selector. Copia de la licencia en
-> `public/emoji/openmoji/LICENSE.txt`.
+> **Licencia (obligatoria):** los gráficos de Twemoji se licencian bajo
+> **CC-BY 4.0** (© Twitter 2014-2021; © Jason Sofonia y Justine De Caires
+> 2022-presente). La atribución aparece en el footer de la landing y en el pie
+> del propio selector. Copia de la licencia en
+> `public/emoji/twemoji/LICENSE.txt`.

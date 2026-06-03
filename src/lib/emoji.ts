@@ -1,67 +1,75 @@
-// Núcleo del sistema de emojis unificados (OpenMoji, CC BY-SA 4.0).
+// Núcleo del sistema de emojis unificados (Twemoji, gráficos CC-BY 4.0).
 //
-// Resuelve el NOMBRE DE FICHERO OpenMoji a partir de un carácter emoji y
+// Resuelve el NOMBRE DE FICHERO Twemoji a partir de un carácter emoji y
 // trocea texto plano en segmentos (texto vs emoji) para renderizarlos como SVG.
 //
-// Convenio de nombres de OpenMoji (el punto delicado):
-// - Los ficheros son `<HEXCODE>.svg`, hexcodes en MAYÚSCULAS unidos por "-".
-// - OpenMoji ELIMINA el variation selector `FE0F` en emojis de un solo
-//   codepoint (p.ej. ❤️ = U+2764 U+FE0F → `2764.svg`; ✅ → `2705.svg`).
-// - PERO conserva `FE0F` dentro de secuencias ZWJ y keycaps
-//   (p.ej. `2764-FE0F-200D-1F525.svg`, `0023-FE0F-20E3.svg`).
+// Convenio de nombres de Twemoji (el punto delicado):
+// - Los ficheros son `<hexcode>.svg`, hexcodes en MINÚSCULAS unidos por "-".
+// - Regla de FE0F de Twemoji (`grabTheRightIcon`): si el emoji contiene un ZWJ
+//   (U+200D), se CONSERVA el `FE0F`; si NO contiene ZWJ, se ELIMINAN todos los
+//   `FE0F`. Esto afecta también a los KEYCAPS (no llevan ZWJ → su FE0F se quita).
+//   Ejemplos verificados contra los SVG reales de @discordapp/twemoji v16:
+//     ❤️ (U+2764 U+FE0F)            → `2764.svg`        (sin ZWJ → FE0F fuera)
+//     ✌️ (U+270C U+FE0F)            → `270c.svg`        (sin ZWJ → FE0F fuera)
+//     #️⃣ (U+0023 U+FE0F U+20E3)     → `23-20e3.svg`     (keycap, sin ZWJ → FE0F fuera)
+//     👨‍💻 (U+1F468 U+200D U+1F4BB)  → `1f468-200d-1f4bb.svg` (ZWJ → tal cual)
+//     ❤️‍🔥 (U+2764 U+FE0F U+200D U+1F525) → `2764-fe0f-200d-1f525.svg` (ZWJ → FE0F dentro)
+//     👍🏽 (U+1F44D U+1F3FD)         → `1f44d-1f3fd.svg` (skin tone)
+//     🇪🇸 (U+1F1EA U+1F1F8)         → `1f1ea-1f1f8.svg` (bandera)
 // Estrategia robusta sin manifiesto en cliente: probamos primero el nombre
-// CON todos los codepoints (cubre ZWJ/keycaps) y, si la imagen no existe,
-// el <img> hace fallback al nombre SIN FE0F (cubre el caso del VS16 suelto);
-// si tampoco existe, se muestra el carácter nativo. Ver `EmojiText`.
+// PRIMARIO (regla Twemoji) y, si la imagen no existe, el <img> hace fallback al
+// nombre con TODOS los codepoints (incluido FE0F); si tampoco existe, se muestra
+// el carácter nativo. Ver `EmojiText`.
 
 import emojiRegexFactory from "emoji-regex";
 
-/** Carpeta pública donde se sirven los SVG de OpenMoji (estáticos, lazy). */
-export const OPENMOJI_BASE = "/emoji/openmoji";
+/** Carpeta pública donde se sirven los SVG de Twemoji (estáticos, lazy). */
+export const TWEMOJI_BASE = "/emoji/twemoji";
 
-/** Devuelve los codepoints de un emoji en hex mayúsculas. */
+/** Devuelve los codepoints de un emoji en hex minúsculas. */
 function toCodepoints(emoji: string): string[] {
   return Array.from(emoji).map((ch) =>
-    (ch.codePointAt(0) ?? 0).toString(16).toUpperCase(),
+    (ch.codePointAt(0) ?? 0).toString(16).toLowerCase(),
   );
 }
 
 /**
- * Nombre de fichero OpenMoji PRIMARIO para un emoji, aplicando la regla real
- * de OpenMoji sobre `FE0F` (el VS16):
- * - En una secuencia ZWJ (`200D`) o keycap (`20E3`), el `FE0F` se CONSERVA
- *   (p.ej. `2764-FE0F-200D-1F525`, `0023-FE0F-20E3`).
- * - En cualquier otro caso (emoji "suelto" con VS16: ❤️, ✅, ☺️), el `FE0F`
- *   se ELIMINA → `2764`, `2705`, `263A`.
- * Así evitamos un 404 garantizado (y su flash) en los emojis más comunes.
+ * Nombre de fichero Twemoji PRIMARIO para un emoji, aplicando la regla real de
+ * Twemoji sobre `FE0F` (el VS16):
+ * - Si la secuencia contiene un ZWJ (`200d`), se CONSERVA el `FE0F`
+ *   (p.ej. `2764-fe0f-200d-1f525`).
+ * - En cualquier otro caso (emoji "suelto" con VS16 ❤️/✌️, o keycap #️⃣), se
+ *   ELIMINAN todos los `FE0F` → `2764`, `270c`, `23-20e3`.
+ * Hexcodes en minúsculas unidos por `-`. Así evitamos un 404 garantizado (y su
+ * flash) en los emojis más comunes.
  */
-export function openmojiHexcode(emoji: string): string {
+export function emojiAssetName(emoji: string): string {
   const cps = toCodepoints(emoji);
-  const isSequence = cps.includes("200D") || cps.includes("20E3");
-  const effective = isSequence ? cps : cps.filter((c) => c !== "FE0F");
+  const hasZwj = cps.includes("200d");
+  const effective = hasZwj ? cps : cps.filter((c) => c !== "fe0f");
   return effective.join("-");
 }
 
 /**
  * Nombre ALTERNATIVO si el primario fallara (cubre el caso opuesto a la regla
- * anterior, raro pero posible según cómo el navegador normalice el emoji):
- * la variante con TODOS los codepoints (incluido `FE0F`). `null` si coincide
- * con el primario (no aporta un nombre distinto que probar).
+ * anterior, raro pero posible según cómo el navegador normalice el emoji): la
+ * variante con TODOS los codepoints (incluido `FE0F`). `null` si coincide con
+ * el primario (no aporta un nombre distinto que probar).
  */
-export function openmojiHexcodeNoVariation(emoji: string): string | null {
+export function emojiAssetNameFull(emoji: string): string | null {
   const full = toCodepoints(emoji).join("-");
-  return full === openmojiHexcode(emoji) ? null : full;
+  return full === emojiAssetName(emoji) ? null : full;
 }
 
-/** URL del SVG primario de OpenMoji para un emoji. */
-export function openmojiUrl(emoji: string): string {
-  return `${OPENMOJI_BASE}/${openmojiHexcode(emoji)}.svg`;
+/** URL del SVG primario de Twemoji para un emoji. */
+export function emojiUrl(emoji: string): string {
+  return `${TWEMOJI_BASE}/${emojiAssetName(emoji)}.svg`;
 }
 
-/** URL del SVG alternativo (sin FE0F), o `null` si no aplica. */
-export function openmojiUrlNoVariation(emoji: string): string | null {
-  const hex = openmojiHexcodeNoVariation(emoji);
-  return hex ? `${OPENMOJI_BASE}/${hex}.svg` : null;
+/** URL del SVG alternativo (con todos los codepoints), o `null` si no aplica. */
+export function emojiUrlFull(emoji: string): string | null {
+  const hex = emojiAssetNameFull(emoji);
+  return hex ? `${TWEMOJI_BASE}/${hex}.svg` : null;
 }
 
 /** Un trozo de texto: o bien texto plano, o bien un emoji detectado. */
