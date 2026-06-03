@@ -28,6 +28,7 @@ import {
   replyToPostSchema,
 } from "@/lib/validations/post";
 import { canModerate, getViewer } from "@/server/authz";
+import { createPostMentions } from "@/server/mentions";
 import { createNotification } from "@/server/notifications";
 import { deleteAttachmentsFromStorage } from "@/server/storage/gc";
 
@@ -169,11 +170,6 @@ export async function createPost(
 
     // Notificación REPLY al autor del post padre (centralizada: no auto-notifica
     // y publica al bus de tiempo real). Best-effort; no bloquea la respuesta.
-    //
-    // MENTION (@usuario) queda PENDIENTE: aún no hay parsing de menciones en el
-    // contenido. Cuando se implemente, este es el punto natural para, tras
-    // extraer los @handles, llamar a `createNotification` con type MENTION por
-    // cada mencionado (evitando duplicar con el REPLY al mismo autor).
     if (parentAuthorId) {
       await createNotification({
         userId: parentAuthorId,
@@ -182,6 +178,13 @@ export async function createPost(
         postId: post.id,
       });
     }
+
+    // MENTION (@[name](id)): parsea el contenido, valida los ids contra BD,
+    // crea las filas Mention(postId) y notifica MENTION a cada mencionado
+    // (excluye al autor). Best-effort interno: nunca tumba la creación del post.
+    // Si el autor del padre además está mencionado, recibe REPLY y MENTION
+    // (eventos distintos, intencionado).
+    await createPostMentions(post.id, content ?? "", viewerId);
 
     revalidateFeed(parentId ?? post.id);
     return { ok: true, data: post };

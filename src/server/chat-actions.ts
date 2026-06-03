@@ -38,6 +38,7 @@ import {
   type MessagesPage,
 } from "@/server/chat";
 import { eventBus } from "@/server/events/bus";
+import { createMessageMentions } from "@/server/mentions";
 import { searchUsers, type UserSearchResult } from "@/server/search";
 
 // ── Contrato de resultado (reutiliza la forma de post-actions) ───────────────
@@ -359,6 +360,17 @@ export async function sendMessage(
       senderId: viewerId,
       createdAt: message.createdAt.getTime(),
     }));
+
+    // MENTION (@[name](id)) en chat: crea filas Mention(messageId) y notifica
+    // MENTION SOLO a usuarios que sean MIEMBROS de la conversación (descarta
+    // ids fuera de ella) y distintos del emisor. Best-effort interno: nunca
+    // tumba el envío del mensaje.
+    await createMessageMentions(
+      message.id,
+      message.content,
+      viewerId,
+      memberIds,
+    );
 
     return { ok: true, data: { message } };
   } catch {

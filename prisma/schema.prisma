@@ -318,16 +318,26 @@ model Follow {
   @@map("follow")
 }
 
-// Menciones de usuarios en un post.
+// Mención POLIMÓRFICA de un usuario: pertenece a EXACTAMENTE uno de un Post o
+// un Message (no ambos, no ninguno). La exclusividad la garantiza un CHECK
+// constraint en SQL (ver migración `mention_polymorphic`):
+//   CHECK ((post_id IS NOT NULL) <> (message_id IS NOT NULL))
+// Prisma no modela CHECKs ni índices únicos parciales, así que la unicidad por
+// caso —(postId, mentionedUserId) y (messageId, mentionedUserId)— se expresa
+// con DOS índices únicos PARCIALES creados a mano en la migración (no con
+// @@unique, que generaría índices totales con NULLs que no encajan aquí).
 model Mention {
   id              String   @id @default(cuid())
-  postId          String
-  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId          String?
+  post            Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  messageId       String?
+  message         Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
   mentionedUserId String
   mentionedUser   User     @relation(fields: [mentionedUserId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
 
-  @@unique([postId, mentionedUserId])
+  @@index([postId])
+  @@index([messageId])
   @@index([mentionedUserId])
   @@map("mention")
 }
@@ -418,6 +428,8 @@ model Message {
 
   // Adjuntos del mensaje (Fase 9a). Cascade al borrar el mensaje.
   attachments    Attachment[]
+  // Menciones (@usuario) dentro del mensaje. Cascade al borrar el mensaje.
+  mentions       Mention[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
