@@ -2,7 +2,7 @@
 
 Red social interna de empresa — pieza de portfolio.
 
-**Estado:** Fase 1 — fundación (scaffold, tooling y estructura; sin lógica de negocio).
+**Estado:** En desarrollo activo — funcionalidad principal implementada (auth, feed, mensajería en tiempo real, notificaciones, admin), con tests unitarios/integración/E2E y CI.
 
 ## Stack
 
@@ -13,6 +13,15 @@ Red social interna de empresa — pieza de portfolio.
 - **Prisma 7** (`prisma-client` generator) + **PostgreSQL 16**
 - **better-auth**, **zod**, **@tanstack/react-query**, **motion**
 - Gestor de paquetes: **pnpm**
+
+## Funcionalidades
+
+- **Autenticación y organizaciones** (better-auth): cuentas, sesiones, perfiles, organizaciones con miembros e invitaciones.
+- **Feed social**: publicaciones, reacciones, menciones y seguimiento (follow).
+- **Mensajería en tiempo real**: conversaciones, mensajes y adjuntos (almacenamiento en `@vercel/blob`).
+- **Notificaciones**, **búsqueda** y panel de **administración**.
+- **Canales** dentro de la organización.
+- **Calidad**: 18 modelos de datos, ~13 Server Actions, validación con zod, tests Vitest (unit + integración) y Playwright (E2E) con CI.
 
 ## Desarrollo local
 
@@ -34,7 +43,7 @@ pnpm dev                     # arrancar el dev server
 | `pnpm check`     | `biome check` (lint + format, gate)     |
 | `pnpm lint`      | `biome lint`                            |
 | `pnpm format`    | `biome format --write`                  |
-| `pnpm db:seed`   | Seed de datos demo (placeholder Fase 3) |
+| `pnpm db:seed`   | Seed de datos demo                      |
 
 ## Documentación
 
