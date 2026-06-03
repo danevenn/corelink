@@ -10,8 +10,10 @@ import {
   AttachButton,
   AttachmentPreviews,
 } from "@/components/media/attachment-picker";
+import { MentionAutocomplete } from "@/components/mention/mention-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useMentionAutocomplete } from "@/hooks/use-mention-autocomplete";
 import { useUploads } from "@/hooks/use-uploads";
 import { insertAtCursor, restoreCaret } from "@/lib/insert-at-cursor";
 import { replyToPostSchema } from "@/lib/validations/post";
@@ -50,6 +52,16 @@ export function ReplyForm({ parentId, viewer }: Props) {
     setContent(value);
     restoreCaret(ref.current, caret);
   }
+
+  // Autocompletado de @menciones en respuestas (sin conversationId).
+  const mentions = useMentionAutocomplete({
+    textareaRef: ref,
+    value: content,
+    setValue: (next, caret) => {
+      setContent(next);
+      restoreCaret(ref.current, caret);
+    },
+  });
 
   function submit() {
     setError(null);
@@ -108,15 +120,26 @@ export function ReplyForm({ parentId, viewer }: Props) {
         <label className="sr-only" htmlFor={fieldId}>
           Escribe una respuesta
         </label>
-        <Textarea
-          className="min-h-16 resize-y rounded-2xl leading-relaxed"
-          disabled={pending}
-          id={fieldId}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Escribe una respuesta…"
-          ref={ref}
-          value={content}
-        />
+        <div className="relative">
+          <Textarea
+            className="min-h-16 resize-y rounded-2xl leading-relaxed"
+            disabled={pending}
+            id={fieldId}
+            onBlur={mentions.close}
+            onChange={(e) => {
+              setContent(e.target.value);
+              mentions.onValueChange(
+                e.target.value,
+                e.target.selectionStart ?? e.target.value.length,
+              );
+            }}
+            onKeyDown={mentions.onKeyDown}
+            placeholder="Escribe una respuesta…"
+            ref={ref}
+            value={content}
+          />
+          <MentionAutocomplete ac={mentions} />
+        </div>
         <AttachmentPreviews uploads={uploads} />
         {error ? (
           <p className="text-xs text-danger" role="alert">

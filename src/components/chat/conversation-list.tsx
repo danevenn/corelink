@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import { EmojiText } from "@/components/emoji/emoji-text";
 import { useChatMessageEvents, useReadEvents } from "@/hooks/use-event-stream";
 import { conversationTitle, shortTime } from "@/lib/chat-ui";
+import { mentionsToPlainText } from "@/lib/mention-token";
 import { cn } from "@/lib/utils";
 import type { ConversationSummary } from "@/server/chat";
 import { fetchConversations } from "@/server/chat-actions";
@@ -120,7 +121,9 @@ export function ConversationList({ initial, viewerId, activeId }: Props) {
                     {last ? (
                       <>
                         {mine ? "Tú: " : ""}
-                        <EmojiText>{last.snippet}</EmojiText>
+                        <EmojiText>
+                          {mentionsToPlainText(last.snippet)}
+                        </EmojiText>
                       </>
                     ) : (
                       "Sin mensajes"

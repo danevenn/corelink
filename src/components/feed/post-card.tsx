@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { EmojiText } from "@/components/emoji/emoji-text";
 import { AttachmentGallery } from "@/components/media/attachment-gallery";
+import { RichText } from "@/components/mention/rich-text";
 import { absoluteTime, relativeTime } from "@/lib/feed-ui";
 import { cn } from "@/lib/utils";
 import type { PostWithMeta } from "@/server/posts";
@@ -53,7 +53,7 @@ export function PostCard({
         />
       ) : null}
 
-      <header className="flex items-start gap-3">
+      <header className="relative z-10 flex items-start gap-3">
         <Link
           className="shrink-0 rounded-full"
           href={authorHref}
@@ -119,26 +119,32 @@ export function PostCard({
 
       {post.content.trim().length > 0 ? (
         variant === "feed" ? (
-          <Link
-            className="-mx-1 rounded-lg px-1 outline-none"
-            href={href}
-            aria-label="Abrir hilo del post"
-          >
-            <PostBody content={post.content} />
-          </Link>
+          // Overlay-link "estirado": cubre la card para abrir el hilo SIN
+          // envolver el cuerpo en un <a> (los enlaces de mención son <a> y no
+          // pueden anidarse). Las menciones llevan z-index y quedan por encima.
+          <>
+            <Link
+              aria-label="Abrir hilo del post"
+              className="absolute inset-0 z-0 rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+              href={href}
+            />
+            <PostBody content={post.content} raisedMentions />
+          </>
         ) : (
           <PostBody content={post.content} />
         )
       ) : null}
 
       {post.attachments.length > 0 ? (
-        <AttachmentGallery
-          attachments={post.attachments}
-          authorName={post.author.displayName}
-        />
+        <div className="relative z-10">
+          <AttachmentGallery
+            attachments={post.attachments}
+            authorName={post.author.displayName}
+          />
+        </div>
       ) : null}
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 pt-1">
+      <footer className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-1">
         <ReactionBar
           breakdown={post.reactionsByType}
           postId={post.id}
@@ -182,11 +188,17 @@ export function PostCard({
   );
 }
 
-/** Renderiza el contenido respetando saltos de línea (sin HTML del usuario). */
-function PostBody({ content }: { content: string }) {
+/** Renderiza el contenido (menciones + emojis) respetando saltos de línea. */
+function PostBody({
+  content,
+  raisedMentions,
+}: {
+  content: string;
+  raisedMentions?: boolean;
+}) {
   return (
-    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
-      <EmojiText>{content}</EmojiText>
+    <p className="relative whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
+      <RichText raisedMentions={raisedMentions}>{content}</RichText>
     </p>
   );
 }

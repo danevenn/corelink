@@ -12,6 +12,8 @@ import {
   AttachButton,
   AttachmentPreviews,
 } from "@/components/media/attachment-picker";
+import { MentionAutocomplete } from "@/components/mention/mention-autocomplete";
+import { useMentionAutocomplete } from "@/hooks/use-mention-autocomplete";
 import { useUploads } from "@/hooks/use-uploads";
 import { insertAtCursor, restoreCaret } from "@/lib/insert-at-cursor";
 import type { UploadedFile } from "@/lib/upload-client";
@@ -24,11 +26,13 @@ type Props = {
     attachments: UploadedFile[],
   ) => void | Promise<void>;
   onTyping: () => void;
+  /** Restringe el autocompletado de menciones a miembros de la conversación. */
+  conversationId: string;
 };
 
 const MAX_LEN = 4000;
 
-export function Composer({ onSend, onTyping }: Props) {
+export function Composer({ onSend, onTyping, conversationId }: Props) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const uploads = useUploads();
@@ -80,6 +84,20 @@ export function Composer({ onSend, onTyping }: Props) {
     [value, autoGrow],
   );
 
+  // Autocompletado de @menciones: en chat SOLO miembros de la conversación.
+  const mentions = useMentionAutocomplete({
+    textareaRef,
+    value,
+    conversationId,
+    setValue: (next, caret) => {
+      setValue(next);
+      requestAnimationFrame(() => {
+        autoGrow();
+        restoreCaret(textareaRef.current, caret);
+      });
+    },
+  });
+
   const canSend =
     !uploads.isUploading &&
     value.length <= MAX_LEN &&
@@ -100,26 +118,38 @@ export function Composer({ onSend, onTyping }: Props) {
         <label className="sr-only" htmlFor="chat-composer">
           Escribe un mensaje
         </label>
-        <textarea
-          className="max-h-40 min-h-[2.5rem] flex-1 resize-none rounded-2xl border border-border bg-background px-4 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"
-          id="chat-composer"
-          maxLength={MAX_LEN}
-          onChange={(e) => {
-            setValue(e.target.value);
-            autoGrow();
-            if (e.target.value.length > 0) onTyping();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void submit();
-            }
-          }}
-          placeholder="Escribe un mensaje…"
-          ref={textareaRef}
-          rows={1}
-          value={value}
-        />
+        <div className="relative flex-1">
+          <textarea
+            className="max-h-40 min-h-[2.5rem] w-full resize-none rounded-2xl border border-border bg-background px-4 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"
+            id="chat-composer"
+            maxLength={MAX_LEN}
+            onBlur={mentions.close}
+            onChange={(e) => {
+              setValue(e.target.value);
+              autoGrow();
+              mentions.onValueChange(
+                e.target.value,
+                e.target.selectionStart ?? e.target.value.length,
+              );
+              if (e.target.value.length > 0) onTyping();
+            }}
+            onKeyDown={(e) => {
+              // Con el dropdown de menciones abierto, sus teclas tienen
+              // prioridad (Enter/Tab eligen; flechas mueven; Escape cierra).
+              mentions.onKeyDown(e);
+              if (e.defaultPrevented) return;
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void submit();
+              }
+            }}
+            placeholder="Escribe un mensaje…"
+            ref={textareaRef}
+            rows={1}
+            value={value}
+          />
+          <MentionAutocomplete ac={mentions} placement="top" />
+        </div>
         <button
           aria-label="Enviar mensaje"
           className={cn(

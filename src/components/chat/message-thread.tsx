@@ -436,7 +436,11 @@ export function MessageThread({
         <TypingIndicator names={typingNames} />
       </div>
 
-      <Composer onSend={doSend} onTyping={handleTyping} />
+      <Composer
+        conversationId={conversationId}
+        onSend={doSend}
+        onTyping={handleTyping}
+      />
     </div>
   );
 }

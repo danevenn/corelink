@@ -11,8 +11,10 @@ import {
   AttachButton,
   AttachmentPreviews,
 } from "@/components/media/attachment-picker";
+import { MentionAutocomplete } from "@/components/mention/mention-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useMentionAutocomplete } from "@/hooks/use-mention-autocomplete";
 import { useUploads } from "@/hooks/use-uploads";
 import { insertAtCursor, restoreCaret } from "@/lib/insert-at-cursor";
 import { createPostSchema } from "@/lib/validations/post";
@@ -60,6 +62,16 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
     setContent(value);
     restoreCaret(textareaRef.current, caret);
   }
+
+  // Autocompletado de @menciones (sin conversationId → busca entre todos).
+  const mentions = useMentionAutocomplete({
+    textareaRef,
+    value: content,
+    setValue: (next, caret) => {
+      setContent(next);
+      restoreCaret(textareaRef.current, caret);
+    },
+  });
 
   function submit() {
     setError(null);
@@ -118,7 +130,7 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
           size="md"
           src={viewer.avatarUrl}
         />
-        <div className="flex-1">
+        <div className="relative flex-1">
           <label className="sr-only" htmlFor={textareaId}>
             Comparte algo con tu equipo
           </label>
@@ -126,11 +138,20 @@ export function PostComposer({ channels, viewer, defaultChannelId }: Props) {
             className="min-h-20 resize-y rounded-2xl leading-relaxed"
             disabled={pending}
             id={textareaId}
-            onChange={(e) => setContent(e.target.value)}
+            onBlur={mentions.close}
+            onChange={(e) => {
+              setContent(e.target.value);
+              mentions.onValueChange(
+                e.target.value,
+                e.target.selectionStart ?? e.target.value.length,
+              );
+            }}
+            onKeyDown={mentions.onKeyDown}
             placeholder="Comparte una actualización, una pregunta o un procedimiento…"
             ref={textareaRef}
             value={content}
           />
+          <MentionAutocomplete ac={mentions} />
         </div>
       </div>
 

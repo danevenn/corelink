@@ -5,9 +5,9 @@
 // MotionConfig del árbol). Muestra estado de envío/leído de los mensajes propios.
 
 import { motion } from "motion/react";
-import { EmojiText } from "@/components/emoji/emoji-text";
 import { CheckIcon, DoubleCheckIcon } from "@/components/feed/icons";
 import { AttachmentGallery } from "@/components/media/attachment-gallery";
+import { RichText } from "@/components/mention/rich-text";
 import { cn } from "@/lib/utils";
 import type { ChatAttachmentView } from "@/server/chat";
 
@@ -73,7 +73,13 @@ export function MessageBubble({
       >
         {hasText ? (
           <p className="whitespace-pre-wrap break-words">
-            <EmojiText>{content}</EmojiText>
+            <RichText
+              mentionClassName={
+                mine ? "text-brand-foreground underline" : undefined
+              }
+            >
+              {content}
+            </RichText>
           </p>
         ) : null}
         {hasAttachments ? (
