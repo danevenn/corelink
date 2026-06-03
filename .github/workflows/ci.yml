@@ -1,0 +1,94 @@
+name: CI
+
+# Gate de calidad de CoreLink (Capa 1: lint + types + build + tests).
+# Corre en cada push y en cada pull request. Si algo falla, el PR no debe
+# mergearse. Un solo job secuencial: el coste extra de paralelizar no compensa
+# para este tamaño de proyecto, y mantiene los logs simples.
+
+on:
+  push:
+  pull_request:
+
+# Cancela ejecuciones antiguas del mismo ref si llega un push nuevo (ahorra CI).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    # Postgres de TEST efímero del runner. Mismas credenciales/DB que el
+    # DATABASE_URL del job. postgres:16 = misma major que el Docker local y que
+    # Neon en prod, para que el SQL crudo de FTS (search_vector) se comporte igual.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: corelink
+          POSTGRES_PASSWORD: corelink
+          POSTGRES_DB: corelink_test
+        ports:
+          - 5432:5432
+        # Espera a que Postgres acepte conexiones antes de seguir.
+        options: >-
+          --health-cmd "pg_isready -U corelink -d corelink_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Apunta a la BD del service container. NO es la BD de desarrollo: es
+      # efímera y exclusiva del runner.
+      DATABASE_URL: postgresql://corelink:corelink@localhost:5432/corelink_test?schema=public
+      # Better Auth exige un secreto; en CI vale uno dummy (no se valida contra
+      # ningún servicio externo). La URL base solo se usa para construir enlaces.
+      BETTER_AUTH_SECRET: ci-dummy-secret-not-used-in-production-00000000=
+      BETTER_AUTH_URL: http://localhost:3000
+      # Almacenamiento local en CI (nunca Vercel Blob): el GC de adjuntos es
+      # best-effort y no necesita un bucket real para los tests.
+      STORAGE_DRIVER: local
+      NEXT_PUBLIC_DEMO_MODE: "false"
+      # Telemetría de Next desactivada en CI.
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpm ANTES de setup-node para que su cache de pnpm-store funcione.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.2.2
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Genera el cliente Prisma (gitignored: se regenera en cada CI).
+      - name: Prisma generate
+        run: pnpm prisma generate
+
+      # Aplica TODAS las migraciones tal cual (incluye el SQL crudo de FTS y los
+      # CHECK polimórficos). `migrate deploy` NUNCA usa el shadow DB ni reescribe
+      # migraciones: es el comando correcto para preparar una BD desde cero.
+      - name: Apply migrations (prisma migrate deploy)
+        run: pnpm prisma migrate deploy
+
+      - name: Lint + format (biome)
+        run: pnpm check
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Tests (vitest)
+        run: pnpm test

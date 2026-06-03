@@ -11,7 +11,12 @@
     "lint": "biome lint",
     "format": "biome format --write",
     "check": "biome check",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:coverage": "vitest run --coverage"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -46,9 +51,13 @@
     "@types/pg": "8.20.0",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.1.8",
+    "jsdom": "29.1.1",
     "prisma": "7.8.0",
     "tailwindcss": "4.3.0",
     "tsx": "4.22.4",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vite-tsconfig-paths": "6.1.1",
+    "vitest": "4.1.8"
   }
 }
