@@ -1,3 +1,4 @@
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -81,6 +82,11 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        {/* Vercel Speed Insights: mide Core Web Vitals reales (LCP, CLS, INP)
+            de usuarios en producción. Es un no-op fuera de Vercel, así que no
+            afecta a dev ni al build local. Solo emite datos cuando la app corre
+            desplegada en Vercel (Fase 12). */}
+        <SpeedInsights />
       </body>
     </html>
   );
