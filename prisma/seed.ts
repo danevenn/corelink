@@ -191,13 +191,20 @@ async function createAuthUser(spec: DemoUserSpec): Promise<string> {
   return result.user.id;
 }
 
-async function main(): Promise<void> {
-  // Cargar entorno e importar db/auth tras tener DATABASE_URL disponible.
-  try {
-    process.loadEnvFile();
-  } catch {
-    // .env ausente: se usan las variables ya presentes en el entorno.
-  }
+/**
+ * Resiembra la BD demo al estado semilla (limpia + repuebla). Es la FUENTE DE
+ * VERDAD del seed: la usa tanto el script CLI (`pnpm db:seed`, vía `tsx`) como
+ * el endpoint de reseteo del cron (`/api/cron/reset-demo`), para no duplicar
+ * lógica ni spawnear un proceso desde el handler.
+ *
+ * Los imports de `db`/`auth`/enums son DINÁMICOS y perezosos a propósito:
+ *   - En el script CLI, `db`/`auth` leen `DATABASE_URL` en el ámbito de módulo,
+ *     así que deben importarse DESPUÉS de cargar `.env` (ver invocación abajo).
+ *   - En el route handler, el entorno ya está cargado por Next y `db`/`auth`
+ *     pueden estar ya importados; reasignarlos aquí es idempotente y barato.
+ * Idempotente: empieza con `reset()`, así correrla N veces deja el mismo estado.
+ */
+export async function seedDatabase(): Promise<void> {
   ({ auth } = await import("@/lib/auth"));
   ({ prisma } = await import("@/lib/db"));
   ({ NotificationType, ReactionType } = await import(
@@ -531,12 +538,38 @@ async function main(): Promise<void> {
   console.log("✅ Seed completado.");
 }
 
-main()
-  .catch((err) => {
-    console.error("❌ Error en el seed:", err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    // `prisma` solo está asignado si `main()` llegó a importarlo.
-    await prisma?.$disconnect();
-  });
+/**
+ * Punto de entrada del SCRIPT CLI (`tsx prisma/seed.ts`, vía `pnpm db:seed`).
+ * Carga `.env` ANTES de importar `db`/`auth` (que leen `DATABASE_URL` al
+ * importarse) y luego delega en `seedDatabase()`. Solo se ejecuta cuando este
+ * archivo es el módulo de entrada; al IMPORTARLO (p.ej. desde el route handler
+ * del cron) NO se dispara nada, solo se exporta `seedDatabase`.
+ */
+async function runAsScript(): Promise<void> {
+  // Cargar entorno antes de que `seedDatabase` importe db/auth.
+  try {
+    process.loadEnvFile();
+  } catch {
+    // .env ausente: se usan las variables ya presentes en el entorno.
+  }
+
+  await seedDatabase()
+    .catch((err) => {
+      console.error("❌ Error en el seed:", err);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      // `prisma` solo está asignado si `seedDatabase()` llegó a importarlo.
+      await prisma?.$disconnect();
+    });
+}
+
+// `import.meta.url` === url del proceso solo cuando se ejecuta como script.
+// Al importar el módulo desde otro (el route handler), esta condición es falsa
+// y `seedDatabase` queda disponible sin efectos secundarios.
+if (
+  process.argv[1] &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href
+) {
+  void runAsScript();
+}
