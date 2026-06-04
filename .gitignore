@@ -44,8 +44,9 @@ yarn-error.log*
 # vercel
 .vercel
 
-# tooling local (Claude Code / preview)
+# tooling y notas locales del editor (no versionar)
 .claude
+CLAUDE.md
 
 # prisma — cliente generado (se regenera con `prisma generate`)
 /src/generated
