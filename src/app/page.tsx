@@ -101,7 +101,7 @@ function SiteHeader() {
         </Link>
         <nav aria-label="Acceso" className="flex items-center gap-1.5">
           <Button asChild className="hidden sm:inline-flex" variant="ghost">
-            <a href="#sobre-nosotros">Sobre nosotros</a>
+            <Link href="/docs">Sobre nosotros</Link>
           </Button>
           <ThemeToggle />
           <Button asChild>
@@ -289,9 +289,13 @@ function About() {
         <p className="text-pretty text-muted-foreground">
           CoreLink nace para que la comunicación interna no dependa de tres
           plataformas externas. Un único espacio, con la información y las
-          personas de la empresa, bajo su control. La documentación completa del
-          producto llegará pronto.
+          personas de la empresa, bajo su control.
         </p>
+        <div className="mx-auto">
+          <Button asChild size="lg" variant="outline">
+            <Link href="/docs">Conocer CoreLink y su stack</Link>
+          </Button>
+        </div>
       </Reveal>
     </section>
   );
@@ -329,6 +333,20 @@ function SiteFooter() {
     <footer className="border-t border-border">
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
         <Wordmark />
+        <nav aria-label="Pie de página" className="flex items-center gap-4">
+          <Link
+            className="underline-offset-4 transition hover:text-foreground hover:underline"
+            href="/docs"
+          >
+            Documentación
+          </Link>
+          <Link
+            className="underline-offset-4 transition hover:text-foreground hover:underline"
+            href="/login"
+          >
+            Iniciar sesión
+          </Link>
+        </nav>
         <p className="text-center sm:text-right">
           Red social interna de empresa · Proyecto de portfolio
           <br className="hidden sm:block" />
