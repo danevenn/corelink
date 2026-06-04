@@ -8,30 +8,31 @@
 // permanecer abierta indefinidamente para recibir los `NOTIFY`. Si usáramos el
 // pool, el `LISTEN` quedaría atado a una conexión que el pool podría reciclar o
 // cerrar, perdiendo eventos silenciosamente. Por eso abrimos UN `pg.Client`
-// propio (misma DATABASE_URL que el pool de Prisma), hacemos `LISTEN` una sola
-// vez y lo mantenemos vivo, con reconexión automática si la conexión se cae.
+// propio, hacemos `LISTEN` una sola vez y lo mantenemos vivo, con reconexión
+// automática si la conexión se cae.
 //
-// El `publish`, en cambio, es una operación efímera (un `SELECT pg_notify(...)`)
-// y la hacemos por el pool de Prisma (`$executeRaw`), que es lo que ya está
-// caliente y gestionado. No necesita la conexión de larga vida.
+// ── Conexión DIRECTA (no-pooled) — requisito de Neon en producción (Fase 12) ─
+// LISTEN/NOTIFY requiere una conexión TCP DIRECTA y persistente a Postgres. En
+// Neon, la connection string POOLED (`DATABASE_URL`, endpoint `-pooler`) pasa
+// por PgBouncer en modo *transaction*, que NO soporta LISTEN/NOTIFY: la
+// suscripción se pierde al devolver la conexión al pool tras cada transacción.
+// Por eso este bus usa la connection string DIRECTA/unpooled de Neon
+// (`DIRECT_DATABASE_URL`) TANTO para el `LISTEN` COMO para el `pg_notify`:
+//   - El `LISTEN` necesita la sesión persistente (no-pooled) sí o sí.
+//   - El `pg_notify` también va por ESTA conexión directa (NO por el pool de
+//     Prisma): si publicáramos por el pooler, el NOTIFY podría no propagarse de
+//     forma fiable a los listeners. Mantener ambos extremos en la misma
+//     conexión directa es lo más robusto y simétrico.
+// En LOCAL/dev/tests `DIRECT_DATABASE_URL` no está definida y caemos a
+// `DATABASE_URL` (el Postgres de Docker soporta LISTEN/NOTIFY por conexión
+// normal), así que el comportamiento es idéntico y transparente.
 //
 // ── Singleton ───────────────────────────────────────────────────────────────
 // Guardamos la instancia en `globalThis` para que el hot-reload de desarrollo
 // no abra N clientes (un LISTEN por recompilación agotaría conexiones). En
 // producción serverless cada instancia tiene la suya.
-//
-// ── CAVEAT Neon en producción (NO resolver ahora; es para la fase de deploy) ─
-// LISTEN/NOTIFY requiere una conexión TCP DIRECTA y persistente a Postgres. El
-// driver serverless HTTP/WebSocket de Neon (el que se usa en funciones Edge) NO
-// soporta LISTEN/NOTIFY. En local (Docker Postgres) funciona nativo. Para la
-// demo en Neon habrá que: (a) usar la connection string DIRECTA (no la pooled
-// de PgBouncer, que tampoco soporta LISTEN en modo transaction) en un runtime
-// Node de larga vida, o (b) sustituir esta implementación por un bus Redis
-// pub/sub (Upstash) — gracias a la interfaz `EventBus`, cambiar el transporte
-// no toca a los consumidores. Documentado para Fase 12 (deploy).
 
 import { Client } from "pg";
-import { prisma } from "@/lib/db";
 import type {
   AppEvent,
   EventBus,
@@ -45,6 +46,27 @@ const CHANNEL = "corelink_events";
 
 /** Backoff (ms) para reintentar la conexión del Client de LISTEN si se cae. */
 const RECONNECT_DELAY_MS = 1000;
+
+/**
+ * Resuelve la connection string DIRECTA (no-pooled) para el Client dedicado de
+ * LISTEN/NOTIFY. En producción (Neon) debe ser la URL directa/unpooled, porque
+ * el pooler (PgBouncer transaction mode) no soporta LISTEN/NOTIFY. En
+ * local/dev/tests `DIRECT_DATABASE_URL` no se define y caemos a `DATABASE_URL`,
+ * que en Docker Postgres es una conexión normal que sí soporta LISTEN/NOTIFY.
+ */
+function resolveDirectConnectionString(): string {
+  // Tratamos cadena vacía/espacios como "no definida" para que un
+  // `DIRECT_DATABASE_URL=""` en el .env local caiga limpiamente a DATABASE_URL.
+  const direct = process.env.DIRECT_DATABASE_URL?.trim();
+  const url = direct ? direct : process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      "Ni DIRECT_DATABASE_URL ni DATABASE_URL están definidas: el bus de " +
+        "eventos no puede abrir su conexión LISTEN/NOTIFY.",
+    );
+  }
+  return url;
+}
 
 type Subscribers = Map<string, Set<EventHandler>>;
 
@@ -78,7 +100,10 @@ class PgEventBus implements EventBus {
   }
 
   private async connect(): Promise<void> {
-    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    // Conexión DIRECTA (no-pooled): obligatoria para LISTEN/NOTIFY en Neon.
+    const client = new Client({
+      connectionString: resolveDirectConnectionString(),
+    });
 
     // Si la conexión muere (red, reinicio de Postgres), reconectamos y re-LISTEN.
     client.on("error", () => {
@@ -144,9 +169,11 @@ class PgEventBus implements EventBus {
   }
 
   /**
-   * Publica un evento para `userId`. Emite un `pg_notify` con el sobre JSON.
-   * Lo hacemos por el pool de Prisma (no por el Client de LISTEN): es una
-   * operación efímera y aprovecha la conexión ya gestionada.
+   * Publica un evento para `userId`. Emite un `pg_notify` con el sobre JSON
+   * por la conexión DIRECTA dedicada (NO por el pool de Prisma): en Neon el
+   * pooler no propaga LISTEN/NOTIFY de forma fiable, así que tanto el LISTEN
+   * como el NOTIFY van por la misma conexión directa. Garantiza la conexión
+   * de forma perezosa antes de publicar.
    */
   async publish(userId: string, event: AppEvent): Promise<void> {
     const envelope: EventEnvelope = { userId, event };
@@ -161,8 +188,16 @@ class PgEventBus implements EventBus {
       );
     }
 
-    // Parametrizado: el payload va como bind ($1), nunca interpolado en el SQL.
-    await prisma.$executeRaw`SELECT pg_notify(${CHANNEL}, ${payload})`;
+    // Asegura la conexión directa dedicada (la misma del LISTEN) y publica por
+    // ella. Parametrizado: el payload va como bind ($1), nunca interpolado.
+    await this.ensureListening();
+    const client = this.client;
+    if (!client) {
+      throw new Error(
+        "El bus de eventos no tiene conexión directa disponible para publicar.",
+      );
+    }
+    await client.query(`SELECT pg_notify($1, $2)`, [CHANNEL, payload]);
   }
 
   /**
