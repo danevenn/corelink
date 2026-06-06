@@ -36,6 +36,22 @@ la URL pooled pasa por PgBouncer y no lo soporta):
 vercel env add DIRECT_DATABASE_URL production   # pega el endpoint SIN `-pooler`
 ```
 
+> ⚠️ **CO-LOCA la función con la BD — causa #1 de latencia en producción.**
+> Cada query de un Server Component / Server Action es un roundtrip función→BD.
+> Si la función Vercel y Neon están en continentes distintos, cada roundtrip
+> cuesta ~100 ms (RTT transatlántico) y se multiplica por las múltiples queries
+> de cada navegación. En local no se nota (BD en `localhost`), pero en Vercel la
+> web va lentísima.
+>
+> - **Elige la región de Neon al provisionarla** lo más cerca posible de la
+>   región de las funciones. Para usuarios en Europa: Neon `eu-central-1`
+>   (Frankfurt).
+> - **Fija la región de la función** en `vercel.json` para que coincida:
+>   `"regions": ["fra1"]` (Frankfurt). El default de Vercel es `iad1` (EEUU),
+>   que con una BD europea introduce el roundtrip transatlántico.
+> - La región de la BD se ve en el host de `DATABASE_URL`
+>   (`ep-…-pooler.<region>.aws.neon.tech`).
+
 ## 3. Provisionar el almacenamiento (Vercel Blob)
 
 Crea un **Blob store** y conéctalo al proyecto (Dashboard → Storage → Blob, o

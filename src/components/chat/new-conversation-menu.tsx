@@ -146,153 +146,162 @@ export function NewConversationMenu() {
       </button>
 
       {mode !== "closed" ? (
-        <div
-          aria-label="Nueva conversación"
-          aria-modal="true"
-          className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-elevated"
-          ref={dialogRef}
-          role="dialog"
-        >
-          <div className="flex border-b border-border">
-            <button
-              className={cn(
-                "flex-1 px-3 py-2.5 text-sm font-medium transition",
-                mode === "direct"
-                  ? "bg-brand-soft text-brand"
-                  : "text-muted-foreground hover:bg-surface-muted",
-              )}
-              onClick={() => setMode("direct")}
-              type="button"
-            >
-              Mensaje directo
-            </button>
-            <button
-              className={cn(
-                "flex-1 px-3 py-2.5 text-sm font-medium transition",
-                mode === "group"
-                  ? "bg-brand-soft text-brand"
-                  : "text-muted-foreground hover:bg-surface-muted",
-              )}
-              onClick={() => setMode("group")}
-              type="button"
-            >
-              Nuevo grupo
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2 p-3">
-            {mode === "group" ? (
-              <div className="flex flex-col gap-1">
-                <label
-                  className="text-xs font-medium text-muted-foreground"
-                  htmlFor={groupNameId}
-                >
-                  Nombre del grupo
-                </label>
-                <Input
-                  id={groupNameId}
-                  maxLength={100}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="p.ej. Proyecto CoreLink"
-                  value={groupName}
-                />
-              </div>
-            ) : null}
-
-            {mode === "group" && selected.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {selected.map((u) => (
-                  <button
-                    className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand"
-                    key={u.userId}
-                    onClick={() => toggleSelect(u)}
-                    type="button"
-                  >
-                    {u.displayName}
-                    <span aria-hidden="true">×</span>
-                    <span className="sr-only">Quitar</span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            <Input
-              aria-label="Buscar personas"
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar personas…"
-              type="search"
-              value={query}
-            />
-
-            <div className="max-h-56 overflow-y-auto">
-              {results.length === 0 && query.trim().length > 0 ? (
-                <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                  Sin resultados.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-0.5">
-                  {results.map((u) => {
-                    const isSelected = selected.some(
-                      (s) => s.userId === u.userId,
-                    );
-                    return (
-                      <li key={u.userId}>
-                        <button
-                          aria-pressed={
-                            mode === "group" ? isSelected : undefined
-                          }
-                          className={cn(
-                            "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-surface-muted",
-                            isSelected && "bg-brand-soft",
-                          )}
-                          disabled={pending}
-                          onClick={() =>
-                            mode === "group" ? toggleSelect(u) : startDirect(u)
-                          }
-                          type="button"
-                        >
-                          <Avatar
-                            name={u.displayName}
-                            seed={u.userId}
-                            size="sm"
-                            src={u.avatarUrl}
-                          />
-                          <span className="flex min-w-0 flex-1 flex-col">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {u.displayName}
-                            </span>
-                            {u.jobTitle ? (
-                              <span className="truncate text-xs text-muted-foreground">
-                                {u.jobTitle}
-                              </span>
-                            ) : null}
-                          </span>
-                          {mode === "group" && isSelected ? (
-                            <span className="text-xs font-bold text-brand">
-                              ✓
-                            </span>
-                          ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+        <>
+          {/* Backdrop: captura clics fuera y aísla el fondo en móvil. Es `fixed`
+              a propósito —así el diálogo escapa del `overflow-hidden` del shell
+              de /messages, que antes recortaba el popover `absolute` y lo
+              descolocaba en móvil. */}
+          <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/40" />
+          <div
+            aria-label="Nueva conversación"
+            aria-modal="true"
+            className="fixed left-1/2 top-1/2 z-50 flex max-h-[85dvh] w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-elevated"
+            ref={dialogRef}
+            role="dialog"
+          >
+            <div className="flex shrink-0 border-b border-border">
+              <button
+                className={cn(
+                  "flex-1 px-3 py-2.5 text-sm font-medium transition",
+                  mode === "direct"
+                    ? "bg-brand-soft text-brand"
+                    : "text-muted-foreground hover:bg-surface-muted",
+                )}
+                onClick={() => setMode("direct")}
+                type="button"
+              >
+                Mensaje directo
+              </button>
+              <button
+                className={cn(
+                  "flex-1 px-3 py-2.5 text-sm font-medium transition",
+                  mode === "group"
+                    ? "bg-brand-soft text-brand"
+                    : "text-muted-foreground hover:bg-surface-muted",
+                )}
+                onClick={() => setMode("group")}
+                type="button"
+              >
+                Nuevo grupo
+              </button>
             </div>
 
-            {error ? (
-              <p className="text-xs text-danger" role="alert">
-                {error}
-              </p>
-            ) : null}
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
+              {mode === "group" ? (
+                <div className="flex flex-col gap-1">
+                  <label
+                    className="text-xs font-medium text-muted-foreground"
+                    htmlFor={groupNameId}
+                  >
+                    Nombre del grupo
+                  </label>
+                  <Input
+                    id={groupNameId}
+                    maxLength={100}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="p.ej. Proyecto CoreLink"
+                    value={groupName}
+                  />
+                </div>
+              ) : null}
 
-            {mode === "group" ? (
-              <Button disabled={pending} onClick={createGroup} type="button">
-                {pending ? "Creando…" : "Crear grupo"}
-              </Button>
-            ) : null}
+              {mode === "group" && selected.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {selected.map((u) => (
+                    <button
+                      className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand"
+                      key={u.userId}
+                      onClick={() => toggleSelect(u)}
+                      type="button"
+                    >
+                      {u.displayName}
+                      <span aria-hidden="true">×</span>
+                      <span className="sr-only">Quitar</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <Input
+                aria-label="Buscar personas"
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar personas…"
+                type="search"
+                value={query}
+              />
+
+              <div className="max-h-56 overflow-y-auto">
+                {results.length === 0 && query.trim().length > 0 ? (
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    Sin resultados.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-0.5">
+                    {results.map((u) => {
+                      const isSelected = selected.some(
+                        (s) => s.userId === u.userId,
+                      );
+                      return (
+                        <li key={u.userId}>
+                          <button
+                            aria-pressed={
+                              mode === "group" ? isSelected : undefined
+                            }
+                            className={cn(
+                              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-surface-muted",
+                              isSelected && "bg-brand-soft",
+                            )}
+                            disabled={pending}
+                            onClick={() =>
+                              mode === "group"
+                                ? toggleSelect(u)
+                                : startDirect(u)
+                            }
+                            type="button"
+                          >
+                            <Avatar
+                              name={u.displayName}
+                              seed={u.userId}
+                              size="sm"
+                              src={u.avatarUrl}
+                            />
+                            <span className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate text-sm font-medium text-foreground">
+                                {u.displayName}
+                              </span>
+                              {u.jobTitle ? (
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {u.jobTitle}
+                                </span>
+                              ) : null}
+                            </span>
+                            {mode === "group" && isSelected ? (
+                              <span className="text-xs font-bold text-brand">
+                                ✓
+                              </span>
+                            ) : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {error ? (
+                <p className="text-xs text-danger" role="alert">
+                  {error}
+                </p>
+              ) : null}
+
+              {mode === "group" ? (
+                <Button disabled={pending} onClick={createGroup} type="button">
+                  {pending ? "Creando…" : "Crear grupo"}
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
     </div>
   );

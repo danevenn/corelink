@@ -27,20 +27,35 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  // Gate R1: cambio de contraseña forzado en el primer login. Si la cuenta tiene
-  // `mustChangePassword`, bloqueamos TODA la zona protegida y enviamos a la
-  // página de cambio (fuera del grupo (app), así no se auto-redirige). Defensa
-  // en servidor: aunque la UI ocultara algo, aquí no se renderiza nada de la app
-  // hasta que la contraseña se cambie.
-  const account = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { mustChangePassword: true },
-  });
+  // Una vez confirmada la sesión, el resto de lecturas del shell son
+  // independientes entre sí: las disparamos EN PARALELO (antes eran ~5 awaits
+  // secuenciales = ~5 roundtrips a Neon encadenados por navegación). Con el
+  // `cookieCache` de Better Auth, los `getSession()` internos de `getViewer` y
+  // `getAuthViewer` ya no tocan la BD.
+  //   - account.mustChangePassword: gate R1 (cambio de contraseña forzado).
+  //   - viewer: identidad para la cabecera (displayName/avatar).
+  //   - authViewer: rol, para decidir si se muestra "Gestión" (staff).
+  //   - unread / unreadMessages: badges de notificaciones y mensajes.
+  const [account, viewer, authViewer, unread, unreadMessages] =
+    await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { mustChangePassword: true },
+      }),
+      getViewer(),
+      getAuthViewer(),
+      getUnreadCount(),
+      getTotalUnread(),
+    ]);
+
+  // Gate R1: cambio de contraseña forzado en el primer login. Bloquea TODA la
+  // zona protegida y envía a la página de cambio (fuera del grupo (app), así no
+  // se auto-redirige). Defensa en servidor: aquí no se renderiza nada hasta que
+  // la contraseña se cambie.
   if (account?.mustChangePassword) {
     redirect("/change-password");
   }
 
-  const viewer = await getViewer();
   if (!viewer) {
     redirect("/login");
   }
@@ -48,11 +63,7 @@ export default async function AppLayout({
   // Rol del viewer (servidor): decide si se muestra el enlace "Gestión". El
   // panel es accesible a STAFF (admin || moderator) y se re-protege en su propio
   // layout; aquí solo evitamos mostrar de más.
-  const authViewer = await getAuthViewer();
   const viewerIsStaff = authViewer ? canModerate(authViewer.role) : false;
-
-  const unread = await getUnreadCount();
-  const unreadMessages = await getTotalUnread();
 
   return (
     // Una sola EventSource para toda la zona autenticada: la campana y el chat

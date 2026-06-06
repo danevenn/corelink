@@ -38,6 +38,24 @@ export const auth = betterAuth({
   }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  // Rendimiento: cache de sesión en cookie firmada. Sin esto, CADA
+  // `auth.api.getSession()` golpea la BD para validar la sesión, y el layout de
+  // (app) lo invoca 3 veces por navegación (layout + viewer + authz), además de
+  // una vez por Server Action (búsqueda de usuarios, envío de mensajes…). En
+  // Neon cada roundtrip cuesta decenas/cientos de ms: era la causa principal de
+  // la latencia de navegación y de la lentitud de la búsqueda.
+  //
+  // Con el cache, `getSession` lee y verifica la firma de una cookie (sin tocar
+  // la BD) durante `maxAge` segundos. Tradeoff: los cambios de `role`/`banned`
+  // tardan hasta `maxAge` en propagarse a una sesión ya emitida (60 s es un
+  // margen aceptable aquí). Donde se exija frescura absoluta se puede forzar la
+  // lectura de BD con `getSession({ query: { disableCookieCache: true } })`.
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60,
+    },
+  },
   // Rate limiting (Better Auth, activo por defecto en producción). En la suite
   // E2E hacemos muchos logins seguidos contra el MISMO servidor, lo que dispara
   // el límite ("Too many requests") y vuelve los tests flaky. Lo desactivamos
