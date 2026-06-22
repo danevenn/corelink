@@ -23,11 +23,10 @@
 // La UI (autocompletado) inserta el token al elegir un usuario; el render lo
 // reconoce con el MISMO patrón y lo pinta como chip/enlace al perfil.
 
-import { headers } from "next/headers";
 import { NotificationType } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/server/notifications";
+import { getViewerIdOrNull } from "@/server/session";
 
 // Patrón del token `@[name](id)`. `name` = sin ']' (lazy). `id` = sin ')' ni
 // espacios. La `g` permite extraer todas las ocurrencias del contenido.
@@ -198,11 +197,6 @@ export type MentionableUser = {
 };
 
 const MENTIONABLE_LIMIT = 8;
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
 
 /**
  * Busca usuarios mencionables para el autocompletado.

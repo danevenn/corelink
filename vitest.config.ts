@@ -1,10 +1,9 @@
-import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 // Config de Vitest para CoreLink (Capa 1 de testing).
 //
-// - Alias `@/*`: lo resuelve `vite-tsconfig-paths` leyendo tsconfig.json (única
-//   fuente de verdad del alias).
+// - Alias `@/*`: lo resuelve Vite de forma nativa (`resolve.tsconfigPaths`)
+//   leyendo tsconfig.json (única fuente de verdad del alias).
 // - Entorno por defecto `node`: los tests son server-side (Server Actions,
 //   funciones puras de servidor). El único caso de UI (insertAtCursor) usa
 //   `jsdom` localmente vía un comentario `// @vitest-environment jsdom` en su
@@ -24,7 +23,8 @@ try {
 }
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  // Resolución nativa de los paths de tsconfig (`@/*`), sin el plugin externo.
+  resolve: { tsconfigPaths: true },
   test: {
     environment: "node",
     globals: true,

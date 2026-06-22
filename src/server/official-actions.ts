@@ -14,9 +14,9 @@ import { revalidatePath } from "next/cache";
 import { NotificationType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { setOfficialSchema } from "@/lib/validations/post";
+import type { ActionResult } from "@/server/action-result";
 import { requireModerator } from "@/server/authz";
 import { createNotification } from "@/server/notifications";
-import type { ActionResult } from "@/server/post-actions";
 
 export type SetOfficialResult = { postId: string; isOfficial: boolean };
 

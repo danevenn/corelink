@@ -17,9 +17,7 @@
 // afectado con `revalidatePath` (Next 16, Node runtime).
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { NotificationType } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   createPostSchema,
@@ -27,31 +25,16 @@ import {
   editPostSchema,
   replyToPostSchema,
 } from "@/lib/validations/post";
+import type { ActionResult } from "@/server/action-result";
 import { canModerate, getViewer } from "@/server/authz";
 import { createPostMentions } from "@/server/mentions";
 import { createNotification } from "@/server/notifications";
+import { getViewerIdOrNull } from "@/server/session";
 import { deleteAttachmentsFromStorage } from "@/server/storage/gc";
-
-// ── Contrato de resultado ───────────────────────────────────────────────────
-
-export type ActionError = {
-  message: string;
-  /** Errores de validación por campo (zod flatten), si aplica. */
-  fieldErrors?: Record<string, string[]>;
-};
-
-export type ActionResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: ActionError };
 
 export type CreatedPost = { id: string; parentId: string | null };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
 
 const FEED_PATH = "/feed";
 

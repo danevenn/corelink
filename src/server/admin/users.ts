@@ -27,8 +27,8 @@ import {
   setUserRoleSchema,
   userIdSchema,
 } from "@/lib/validations/admin";
+import type { ActionResult } from "@/server/action-result";
 import { isAdmin, requireAdmin, requireModerator } from "@/server/authz";
-import type { ActionResult } from "@/server/post-actions";
 import { deleteAttachmentsFromStorage } from "@/server/storage/gc";
 
 const ADMIN_PATH = "/admin";

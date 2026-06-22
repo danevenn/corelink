@@ -17,7 +17,7 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import type { ActionResult } from "@/server/post-actions";
+import type { ActionResult } from "@/server/action-result";
 
 const DEMO_EMAIL = "lucia.martin@corelink.demo";
 const DEMO_PASSWORD = "corelink-demo-2026";
