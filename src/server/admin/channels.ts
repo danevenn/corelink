@@ -18,8 +18,8 @@ import {
   createChannelSchema,
   updateChannelSchema,
 } from "@/lib/validations/admin";
+import type { ActionResult } from "@/server/action-result";
 import { requireAdmin } from "@/server/authz";
-import type { ActionResult } from "@/server/post-actions";
 
 const ADMIN_PATH = "/admin";
 const FEED_PATH = "/feed";

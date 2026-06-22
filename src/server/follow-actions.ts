@@ -9,23 +9,13 @@
 // Ambas impiden auto-seguirse y exigen sesión.
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { NotificationType } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { followSchema } from "@/lib/validations/follow";
+import type { ActionError, ActionResult } from "@/server/action-result";
 import { createNotification } from "@/server/notifications";
-
-// ── Contrato de resultado (idéntico a post-actions) ─────────────────────────
-
-export type ActionError = {
-  message: string;
-  fieldErrors?: Record<string, string[]>;
-};
-
-export type ActionResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: ActionError };
+import { isUniqueViolation } from "@/server/prisma-errors";
+import { getViewerIdOrNull } from "@/server/session";
 
 export type FollowResult = {
   targetUserId: string;
@@ -35,25 +25,11 @@ export type FollowResult = {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
-
 const FEED_PATH = "/feed";
 
 // Las acciones de follow cambian el feed personalizado del viewer.
 function revalidateFollowing(): void {
   revalidatePath(FEED_PATH);
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "P2002"
-  );
 }
 
 // Valida input + sesión y resuelve el id objetivo, rechazando auto-follow.

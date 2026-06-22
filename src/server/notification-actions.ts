@@ -10,26 +10,20 @@
 // notificaciones, aunque pase ids ajenos (simplemente no coinciden).
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { markReadSchema } from "@/lib/validations/notification";
+import type { ActionResult } from "@/server/action-result";
 import {
   getNotifications,
   getUnreadCount,
   type NotificationsPage,
 } from "@/server/notifications";
-import type { ActionResult } from "@/server/post-actions";
+import { getViewerIdOrNull } from "@/server/session";
 
 export type MarkReadResult = {
   /** Nº de notificaciones marcadas como leídas en esta operación. */
   updated: number;
 };
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
 
 /**
  * Marca notificaciones como leídas.

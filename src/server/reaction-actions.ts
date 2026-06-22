@@ -13,34 +13,19 @@
 // como "ya existía".
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { NotificationType } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { toggleReactionSchema } from "@/lib/validations/reaction";
+import type { ActionResult } from "@/server/action-result";
 import { createNotification } from "@/server/notifications";
+import { isUniqueViolation } from "@/server/prisma-errors";
+import { getViewerIdOrNull } from "@/server/session";
 import { getPostReactionState, type PostReactionState } from "./posts";
-
-// ── Contrato de resultado (idéntico a post-actions) ─────────────────────────
-
-export type ActionError = {
-  message: string;
-  fieldErrors?: Record<string, string[]>;
-};
-
-export type ActionResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: ActionError };
 
 // Estado resultante del post tras el toggle, para que la UI confirme.
 export type ToggleReactionResult = PostReactionState;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
 
 const FEED_PATH = "/feed";
 
@@ -52,14 +37,6 @@ function revalidateFeed(postId?: string | null): void {
 }
 
 // Prisma 7: el error de unique-violation expone `code === "P2002"`.
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "P2002"
-  );
-}
 
 // ── Acción ──────────────────────────────────────────────────────────────────
 

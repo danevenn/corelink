@@ -13,10 +13,9 @@
 //     adicional acotada a las conversaciones del viewer, comparando contra el
 //     `lastReadAt` propio en memoria. Cero queries por conversación.
 
-import { headers } from "next/headers";
 import type { ConversationType, MemberRole } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getViewerIdOrNull } from "@/server/session";
 
 // Re-export de tipos de enum para que la UI (cliente) los importe desde aquí
 // sin arrastrar el módulo de enums generado al bundle por accidente.
@@ -126,11 +125,6 @@ const DEFAULT_MESSAGES_LIMIT = 30;
 const MAX_MESSAGES_LIMIT = 100;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
 
 function snippetOf(content: string): string {
   const trimmed = content.trim();

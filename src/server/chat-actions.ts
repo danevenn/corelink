@@ -18,9 +18,7 @@
 // emisor. El SSE de Fase 7 los reenvía sin cambios. Los mensajes de chat NO
 // crean filas Notification: el chat tiene su propio no-leído vía `lastReadAt`.
 
-import { headers } from "next/headers";
 import { ConversationType, MemberRole } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   conversationIdSchema,
@@ -28,6 +26,7 @@ import {
   getOrCreateDirectSchema,
   sendMessageSchema,
 } from "@/lib/validations/chat";
+import type { ActionResult } from "@/server/action-result";
 import {
   type ConversationDetail,
   type ConversationSummary,
@@ -40,18 +39,7 @@ import {
 import { eventBus } from "@/server/events/bus";
 import { createMessageMentions } from "@/server/mentions";
 import { searchUsers, type UserSearchResult } from "@/server/search";
-
-// ── Contrato de resultado (reutiliza la forma de post-actions) ───────────────
-
-export type ActionError = {
-  message: string;
-  /** Errores de validación por campo (zod flatten), si aplica. */
-  fieldErrors?: Record<string, string[]>;
-};
-
-export type ActionResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: ActionError };
+import { getViewerIdOrNull } from "@/server/session";
 
 /** Mensaje recién creado, listo para render optimista en cliente. */
 export type CreatedMessage = {
@@ -63,11 +51,6 @@ export type CreatedMessage = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
-}
 
 function invalid(fieldErrors: Record<string, string[]>): ActionResult<never> {
   return {

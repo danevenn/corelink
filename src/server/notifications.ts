@@ -11,11 +11,10 @@
 // Las lecturas (`getNotifications`, `getUnreadCount`) devuelven datos LISTOS
 // para la UI (actor con displayName/avatar, snippet del post) sin N+1.
 
-import { headers } from "next/headers";
 import type { NotificationType } from "@/generated/prisma/enums";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { eventBus } from "@/server/events/bus";
+import { getViewerIdOrNull } from "@/server/session";
 
 // ── Creación centralizada ───────────────────────────────────────────────────
 
@@ -117,11 +116,6 @@ function snippetOf(content: string): string {
   const trimmed = content.trim();
   if (trimmed.length <= SNIPPET_LEN) return trimmed;
   return `${trimmed.slice(0, SNIPPET_LEN).trimEnd()}…`;
-}
-
-async function getViewerIdOrNull(): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user.id ?? null;
 }
 
 /**

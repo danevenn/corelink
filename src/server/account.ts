@@ -12,8 +12,8 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { changePasswordSchema } from "@/lib/validations/auth";
+import type { ActionResult } from "@/server/action-result";
 import { getViewer } from "@/server/authz";
-import type { ActionResult } from "@/server/post-actions";
 
 /**
  * Cambia la contraseña del usuario ACTUAL.
